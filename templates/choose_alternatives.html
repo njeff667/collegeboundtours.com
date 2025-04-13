@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4>Tour is full. Select alternative dates:</h4>
+  <form method="POST">
+    {% for tour in alt_tours %}
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="alt_tours" value="{{ tour._id }}">
+        <label class="form-check-label">
+          {{ tour.name }} on {{ tour.date.strftime('%B %d, %Y') }} - {{ tour.schools | join(', ') }}
+        </label>
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary mt-3">Submit Alternatives</button>
+  </form>
+</div>
+{% endblock %}

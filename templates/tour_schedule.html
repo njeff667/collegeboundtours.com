@@ -1,0 +1,83 @@
+<div id="calendar" style="max-width: 100%; margin: 0 auto;"></div>
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+
+<form method="GET" action="{{ url_for('tour_schedule') }}" class="row g-2 mb-4">
+    <div class="col-md-4">
+      <input type="text" name="school" placeholder="Search by school..." class="form-control" value="{{ request.args.get('school', '') }}">
+    </div>
+    <div class="col-md-4">
+      <select name="status" class="form-select">
+        <option value="">Filter by status</option>
+        <option value="Available">Available</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Full">Full</option>
+        <option value="Tentative">Tentative</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-primary w-100">Apply Filters</button>
+    </div>
+  </form>
+
+<!-- Trigger -->
+<button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#tourModal{{ tour.id }}">Details</button>
+
+<!-- Modal -->
+<div class="modal fade" id="tourModal{{ tour.id }}" tabindex="-1" aria-labelledby="tourModalLabel{{ tour.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tourModalLabel{{ tour.id }}">{{ tour.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <strong>Date:</strong> {{ tour.date.strftime('%B %d, %Y') }}<br>
+        <strong>Time:</strong> {{ tour.time }}<br>
+        <strong>Schools:</strong> {{ tour.schools | join(', ') }}<br>
+        <strong>Status:</strong> {{ tour.status }}<br>
+        {% if tour.details %}
+          <p class="mt-3">{{ tour.details }}</p>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="{{ url_for('reserve_tour', tour_id=tour.id) }}" class="btn btn-primary">Reserve Spot</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<span class="badge {{ get_status_class(tour.status) }}">
+    {{ tour.status }}
+    {% if tour.capacity and tour.registered %}
+      - {{ tour.capacity - tour.registered }} seats left
+    {% endif %}
+  </span>
+
+  
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var calendarEl = document.getElementById('calendar');
+  var calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    events: [
+      {% for tour in tours %}
+        {
+          title: "{{ tour.name }} - {{ tour.schools | join(', ') }}",
+          start: "{{ tour.date.strftime('%Y-%m-%d') }}",
+          allDay: true,
+          color: {
+            'Tentative': '#fff3cd',
+            'Confirmed': '#cce5ff',
+            'Available': '#d4edda',
+            'Full': '#f8d7da'
+          }["{{ tour.status }}"]
+        },
+      {% endfor %}
+    ]
+  });
+  calendar.render();
+});
+</script>
+

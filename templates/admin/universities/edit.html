@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Edit University{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Edit University</h2>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">Name</label>
+      <input type="text" name="name" class="form-control" value="{{ university.name }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Website</label>
+      <input type="text" name="website" class="form-control" value="{{ university.website }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Street</label>
+      <input type="text" name="street" class="form-control" value="{{ university.visitor_center_address.street }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">City</label>
+      <input type="text" name="city" class="form-control" value="{{ university.visitor_center_address.city }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">State</label>
+      <input type="text" name="state" class="form-control" value="{{ university.visitor_center_address.state }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Zip</label>
+      <input type="text" name="zip" class="form-control" value="{{ university.visitor_center_address.zip }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Types</label>
+      {% for type in university_types %}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="type_ids" value="{{ type._id }}" {% if type._id in university.type_ids %}checked{% endif %}>
+          <label class="form-check-label">{{ type.label }}</label>
+        </div>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-success">Save</button>
+    <a href="{{ url_for('university_admin.list_universities') }}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

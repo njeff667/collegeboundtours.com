@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <h2>User Role Management</h2>
+  <form method="GET" class="mb-4 d-flex">
+    <input type="text" name="q" class="form-control me-2" placeholder="Search name or email..." value="{{ query }}">
+    <button class="btn btn-outline-primary">Search</button>
+  </form>
+  
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Update</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <form method="POST">
+          <td>{{ user.email }}</td>
+          <td>{{ user.name }}</td>
+          <td>
+            <select name="role" class="form-select">
+              {% for r in ['student', 'parent', 'driver', 'admin'] %}
+                <option value="{{ r }}" {% if user.role == r %}selected{% endif %}>{{ r.title() }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <input type="hidden" name="user_id" value="{{ user._id }}">
+            <button class="btn btn-sm btn-success">Save</button>
+          </td>
+        </form>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

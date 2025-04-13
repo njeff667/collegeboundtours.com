@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4>Driver Messaging Tool</h4>
+  <form method="POST">
+    <div class="mb-3">
+      <label>Choose Message Template:</label>
+      <select name="template" class="form-select">
+        <option value="We are departing in 5 minutes. Please be at the vehicle now.">Departing Soon</option>
+        <option value="We have arrived at our destination. Please prepare to exit the vehicle.">Arrival</option>
+        <option value="We are on the way back to the pickup location. Estimated return time is 6:00 PM.">Return Trip</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label>Driver's Phone (to verify delivery):</label>
+      <input type="text" class="form-control" name="driver_phone" required>
+    </div>
+    <button class="btn btn-success">Send Message</button>
+  </form>
+</div>
+{% endblock %}

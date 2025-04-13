@@ -1,0 +1,14 @@
+
+{% extends "base.html" %}
+{% block title %}Welcome to College Bound Tours{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h1>Explore Your Future</h1>
+  <a href="{{ url_for('tour_schedule') }}" class="btn btn-primary">View Tour Schedule</a>
+  <div>
+    {% for photo in social_photos %}
+      <img src="{{ photo.url }}" style="max-width: 200px;">
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
