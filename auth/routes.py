@@ -12,6 +12,12 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["college_bound"]
 auth_bp = Blueprint("auth", __name__)
 
+
+@auth_bp.route('/apple-login')
+def apple_login():
+    # Your Sign in with Apple logic
+    return redirect("/somewhere")
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -24,9 +30,9 @@ def login():
             login_user(user_obj)
             return redirect(url_for("tours.tour_schedule"))
         flash("Invalid email or password.")
-    return render_template("auth/login.html")
+    return render_template("register_login.html")
 
-@auth_bp.route("/signup", methods=["GET", "POST"])
+"""@auth_bp.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
         email = sanitize_input(request.form.get("email"))
@@ -47,7 +53,7 @@ def signup():
         db.users.insert_one(user)
         flash("Account created. Please log in.")
         return redirect(url_for("auth.login"))
-    return render_template("auth/signup.html")
+    return render_template("signup.html")"""
 
 @auth_bp.route("/logout")
 @login_required

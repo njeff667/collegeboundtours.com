@@ -1,8 +1,12 @@
-<div id="calendar" style="max-width: 100%; margin: 0 auto;"></div>
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+{% extends 'base.html' %}
+{% block title %}Upcoming Tours{% endblock %}
 
-<form method="GET" action="{{ url_for('tour_schedule') }}" class="row g-2 mb-4">
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Upcoming College Tours</h2>
+
+  <!-- Filters -->
+  <form method="GET" action="{{ url_for('tours.tour_schedule') }}" class="row g-2 mb-4">
     <div class="col-md-4">
       <input type="text" name="school" placeholder="Search by school..." class="form-control" value="{{ request.args.get('school', '') }}">
     </div>
@@ -20,42 +24,63 @@
     </div>
   </form>
 
-<!-- Trigger -->
-<button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#tourModal{{ tour.id }}">Details</button>
+  <!-- Calendar -->
+  <div id="calendar" style="max-width: 100%; margin: 0 auto;"></div>
 
-<!-- Modal -->
-<div class="modal fade" id="tourModal{{ tour.id }}" tabindex="-1" aria-labelledby="tourModalLabel{{ tour.id }}" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="tourModalLabel{{ tour.id }}">{{ tour.name }}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <strong>Date:</strong> {{ tour.date.strftime('%B %d, %Y') }}<br>
-        <strong>Time:</strong> {{ tour.time }}<br>
-        <strong>Schools:</strong> {{ tour.schools | join(', ') }}<br>
+  <!-- Tour Cards -->
+  {% for tour in tours %}
+  <div class="card my-3">
+    <div class="card-body">
+      <h5 class="card-title">{{ tour.title or "Untitled Tour" }}</h5>
+      <p class="card-text">
+        <strong>Date:</strong> {{ tour.date if tour.date else "TBD" }}<br>
         <strong>Status:</strong> {{ tour.status }}<br>
-        {% if tour.details %}
-          <p class="mt-3">{{ tour.details }}</p>
+        <strong>Capacity:</strong> {{ tour.registered }}/{{ tour.capacity }}<br>
+        {% if tour.schools %}
+        <strong>Schools:</strong> {{ tour.schools | join(', ') }}
         {% endif %}
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <a href="{{ url_for('reserve_tour', tour_id=tour.id) }}" class="btn btn-primary">Reserve Spot</a>
+      </p>
+
+      <form method="POST" action="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}">
+        <button class="btn btn-primary" type="submit">Reserve</button>
+      </form>
+
+      <!-- Modal Trigger -->
+      <button class="btn btn-outline-info btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#tourModal{{ tour._id }}">Details</button>
+
+      <!-- Modal -->
+      <div class="modal fade" id="tourModal{{ tour._id }}" tabindex="-1" aria-labelledby="tourModalLabel{{ tour._id }}" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="tourModalLabel{{ tour._id }}">{{ tour.title or "Tour Details" }}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p><strong>Date:</strong> {{ tour.date }}</p>
+              <p><strong>Status:</strong> {{ tour.status }}</p>
+              <p><strong>Schools:</strong> {{ tour.schools | join(', ') }}</p>
+              {% if tour.details %}
+              <p>{{ tour.details }}</p>
+              {% endif %}
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <a href="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}" class="btn btn-primary">Reserve Spot</a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+  {% endfor %}
 </div>
+{% endblock %}
 
-<span class="badge {{ get_status_class(tour.status) }}">
-    {{ tour.status }}
-    {% if tour.capacity and tour.registered %}
-      - {{ tour.capacity - tour.registered }} seats left
-    {% endif %}
-  </span>
-
-  
+{% block scripts %}
+<!-- FullCalendar Scripts -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var calendarEl = document.getElementById('calendar');
@@ -64,8 +89,8 @@ document.addEventListener('DOMContentLoaded', function () {
     events: [
       {% for tour in tours %}
         {
-          title: "{{ tour.name }} - {{ tour.schools | join(', ') }}",
-          start: "{{ tour.date.strftime('%Y-%m-%d') }}",
+          title: "{{ tour.title }} - {{ tour.schools | join(', ') }}",
+          start: "{{ tour.date }}",
           allDay: true,
           color: {
             'Tentative': '#fff3cd',
@@ -80,4 +105,4 @@ document.addEventListener('DOMContentLoaded', function () {
   calendar.render();
 });
 </script>
-
+{% endblock %}

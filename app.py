@@ -16,7 +16,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
 # MongoDB setup
-client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
+client = MongoClient(os.getenv("mongodb://localhost:27017/"))#MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
 db = client["college_bound"]
 
 # Login manager setup
@@ -24,6 +24,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "auth.login"
 
+login_manager.init_app(app)
+
+from models.user import User
+
+@login_manager.user_loader
+def load_user(user_id):
+    user_doc = db.users.find_one({"_id": user_id})
+    return User(user_doc) if user_doc else None
+    
 # Blueprint registration
 from auth.routes import auth_bp
 from tours.routes import tours_bp
@@ -31,6 +40,8 @@ from admin.routes import admin_bp
 from driver.routes import driver_bp
 from parent.routes import parent_bp
 from student.routes import student_bp
+from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.contrib.facebook import make_facebook_blueprint, facebook
 
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(tours_bp, url_prefix="/tours")
@@ -38,6 +49,23 @@ app.register_blueprint(admin_bp, url_prefix="/admin")
 app.register_blueprint(driver_bp, url_prefix="/driver")
 app.register_blueprint(parent_bp, url_prefix="/parent")
 app.register_blueprint(student_bp, url_prefix="/student")
+
+# Google OAuth Blueprint
+google_bp = make_google_blueprint(
+    client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
+    scope=["profile", "email"],
+    redirect_url="/google-callback"
+)
+app.register_blueprint(google_bp, url_prefix="/login")
+
+# Facebook OAuth Blueprint
+facebook_bp = make_facebook_blueprint(
+    client_id=os.getenv("FACEBOOK_OAUTH_CLIENT_ID"),
+    client_secret=os.getenv("FACEBOOK_OAUTH_CLIENT_SECRET"),
+    redirect_url="/facebook-callback"
+)
+app.register_blueprint(facebook_bp, url_prefix="/login")
 
 # Home and static pages
 @app.route("/")

@@ -1,4 +1,4 @@
-# admin/universities.py
+# admin/routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from utils.security import role_required
@@ -7,9 +7,9 @@ from bson.objectid import ObjectId
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client["college_bound"]
-univ_admin_bp = Blueprint("university_admin", __name__)
+admin_bp = Blueprint("university_admin", __name__)
 
-@univ_admin_bp.route("/admin/universities")
+@admin_bp.route("/admin/universities")
 @login_required
 @role_required("admin")
 def list_universities():
@@ -22,7 +22,7 @@ def list_universities():
 
     return render_template("admin/universities/list.html", universities=universities)
 
-@univ_admin_bp.route("/admin/universities/<id>", methods=["GET", "POST"])
+@admin_bp.route("/admin/universities/<id>", methods=["GET", "POST"])
 @login_required
 @role_required("admin")
 def edit_university(id):

@@ -13,9 +13,12 @@ tours_bp = Blueprint("tours", __name__)
 # Tour Schedule View
 @tours_bp.route("/schedule")
 def tour_schedule():
-    upcoming_tours = db.tour_instances.find({
-        "date": {"$gte": datetime.now()}
-    }).sort("date", 1)
+    current_date = datetime.now()
+    formatted_date = current_date.strftime("%Y-%m-%d")
+    upcoming_tours = list(db.tour_instances.find({
+        "date": {"$gte": formatted_date}
+    }).sort("date", 1))
+    print=upcoming_tours
     return render_template("tour_schedule.html", tours=upcoming_tours)
 
 # Tour Reservation

@@ -1,5 +1,6 @@
+<!DOCTYPE html>
 <head>
-  <title>{% block title %}College Bound Tours{% endblock %}</title>
+  <title>College Bound Tours | {% block title %}{% endblock %}</title>
   <meta charset="UTF-8">
   <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,6 +16,9 @@
   <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/og-preview.jpg', _external=True) }}{% endblock %}">
   <meta property="og:url" content="{{ request.url }}">
 
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
   <script>
@@ -25,14 +29,6 @@
     gtag('config', 'G-XXXXXXXXXX');
   </script>
 
-  <!-- reservations and confirmations -->
-  <script>
-    gtag('event', 'reserve_tour', {
-      'event_category': 'Tours',
-      'event_label': '{{ tour.name }}',
-      'value': 1
-    });
-  </script>
   <style>
     .badge {
       padding: 0.6em 1em;
@@ -49,6 +45,88 @@
 
   {% block head %}{% endblock %}
 </head>
+<body>
 
-  
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ url_for('home') }}">
+      <img src="static/img/cbt_logo.png" width="30" height="30" class="d-inline-block align-top" alt="College Bound Tours">
+      College Bound Tours
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
+    <div class="collapse navbar-collapse" id="navContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('tours.tour_schedule') }}">Tour Schedule</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('about') }}">About</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('contact') }}">Contact</a>
+        </li>
+
+        {% if current_user.is_authenticated %}
+          {% if current_user.role == 'admin' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('admin.dashboard') }}">Admin Dashboard</a>
+            </li>
+          {% elif current_user.role == 'parent' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('parent.dashboard') }}">Parent Dashboard</a>
+            </li>
+          {% elif current_user.role == 'student' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('student.dashboard') }}">Student Dashboard</a>
+            </li>
+          {% elif current_user.role == 'driver' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('driver.driver_panel') }}">Driver Panel</a>
+            </li>
+          {% endif %}
+
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('tours.my_reservations') }}">My Reservations</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">Logout</a>
+          </li>
+
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth.login') }}">Register</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+{% block scripts %}{% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
