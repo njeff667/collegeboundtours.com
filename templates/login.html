@@ -1,36 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-5" style="max-width: 500px;">
-  <h3 class="text-center">Get Started</h3>
+  <h3 class="text-center">If you have an account, enter your email and password</h3>
 
   <form method="POST" action="{{ url_for('auth.login') }}">
     <div class="mb-3">
       <label>Email:</label>
       <input type="email" name="email" class="form-control" required>
-    </div>
-    <div class="mb-3">
-      <label>Full Name:</label>
-      <input type="text" name="name" class="form-control" required>
-    </div>
-    <div class="mb-3">
-      <label>Your Role:</label>
-      <select name="role" class="form-select" required>
-        <option value="student">Student</option>
-        <option value="parent">Parent</option>
-        <option value="driver">Driver</option>
-        <option value="admin">Admin</option>
-      </select>
-    </div>
-    
+    </div>    
     <div class="mb-3">
       <label>Password:</label>
       <input type="password" name="password" class="form-control" required>
     </div>
-    <button class="btn btn-primary w-100">Register</button>
+    <button class="btn btn-primary w-100">Login</button>
   </form>
 
   <hr>
-  <div class="text-center mb-2">or sign up with</div>
+  <div class="text-center mb-2">or sign in with</div>
   <div class="d-flex justify-content-between">
     <a href="{{ url_for('google.login') }}" class="btn btn-outline-danger w-100 me-2">Google</a>
     <a href="{{ url_for('facebook.login') }}" class="btn btn-outline-primary w-100 me-2">Facebook</a>

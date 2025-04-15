@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+  <h3 class="text-center">Get Started</h3>
+
+  <form method="POST" action="{{ url_for('auth.signup') }}" onsubmit="return validatePassword()">
+    <div class="mb-3">
+      <label>Email:</label>
+      <input type="email" name="email" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label>Full Name:</label>
+      <input type="text" name="name" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label>Your Role:</label>
+      <select name="role" class="form-select" required>
+        <option value="student">Student</option>
+        <option value="parent">Parent</option>
+      </select>
+    </div>
+    
+    <div class="mb-3">
+      <label>Password:</label>
+      <input type="password" id="password" name="password" class="form-control" required>
+      <div class="form-text text-muted">
+        Password must be at least 12 characters long and include uppercase, lowercase, number, and symbol.
+      </div>
+    </div>
+    <div class="mb-3">
+      <label>Confirm Password:</label>
+      <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+    </div>
+
+    <button class="btn btn-primary w-100">Register</button>
+  </form>
+
+  <hr>
+  <div class="text-center mb-2">or sign up with</div>
+  <div class="d-flex justify-content-between">
+    <a href="{{ url_for('google.login') }}" class="btn btn-outline-danger w-100 me-2">Google</a>
+    <a href="{{ url_for('facebook.login') }}" class="btn btn-outline-primary w-100 me-2">Facebook</a>
+    <a href="{{ url_for('auth.apple_login') }}" class="btn btn-outline-dark w-100">Apple</a>
+  </div>
+</div>
+
+<script>
+function validatePassword() {
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirm_password").value;
+
+  const minLength = password.length >= 12;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+
+  if (password !== confirmPassword) {
+    alert("Passwords do not match.");
+    return false;
+  }
+
+  if (!(minLength && hasUpper && hasLower && hasNumber && hasSymbol)) {
+    alert("Password must be at least 12 characters long and include uppercase, lowercase, a number, and a symbol.");
+    return false;
+  }
+
+  return true;
+}
+</script>
+{% endblock %}

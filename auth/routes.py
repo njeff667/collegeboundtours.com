@@ -6,12 +6,20 @@ from bson.objectid import ObjectId
 from pymongo import MongoClient
 from models.user import User
 from utils.security import sanitize_input
-import uuid
+import re, uuid
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client["college_bound"]
 auth_bp = Blueprint("auth", __name__)
 
+def is_strong_password(password):
+    return (
+        len(password) >= 12 and
+        re.search(r'[A-Z]', password) and
+        re.search(r'[a-z]', password) and
+        re.search(r'[0-9]', password) and
+        re.search(r'[\W_]', password)
+    )
 
 @auth_bp.route('/apple-login')
 def apple_login():
@@ -30,14 +38,23 @@ def login():
             login_user(user_obj)
             return redirect(url_for("tours.tour_schedule"))
         flash("Invalid email or password.")
-    return render_template("register_login.html")
+    return render_template("login.html")
 
-"""@auth_bp.route("/signup", methods=["GET", "POST"])
+@auth_bp.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
         email = sanitize_input(request.form.get("email"))
         password = sanitize_input(request.form.get("password"))
         name = sanitize_input(request.form.get("name"))
+        role = str(sanitize_input(request.form.get("role"))).lower()
+
+        if role != "student" or role != "parent":
+            role = "student"
+
+        # Example usage in your signup route:
+        if not is_strong_password(password):
+            flash("Password must be at least 12 characters and include upper/lowercase letters, a number, and a symbol.")
+            return redirect(url_for("auth.signup"))
 
         if db.users.find_one({"email": email}):
             flash("Email already registered.")
@@ -48,12 +65,12 @@ def signup():
             "email": email,
             "name": name,
             "password": generate_password_hash(password),
-            "role": "student"  # Default role
+            "role": role  # Default role
         }
         db.users.insert_one(user)
         flash("Account created. Please log in.")
         return redirect(url_for("auth.login"))
-    return render_template("signup.html")"""
+    return render_template("signup.html")
 
 @auth_bp.route("/logout")
 @login_required
