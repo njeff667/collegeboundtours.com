@@ -31,7 +31,7 @@ limiter = Limiter(get_remote_address, app=None, default_limits=["30 per hour"])
 load_dotenv()
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(__name__, static_folder="templates/static")
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 app.register_blueprint(ai_bp, url_prefix="/auth")
 app.register_blueprint(auth_bp, url_prefix="/auth")

@@ -1,6 +1,7 @@
 /* General page background */
 body {
-    background-color: #f8f9fa; /* Light gray-blue */
+    background-color: #bfd7f0; /* Light gray-blue */
+    background-image: url("static/img/background.PNG"); 
 }
 
 /* Card look */

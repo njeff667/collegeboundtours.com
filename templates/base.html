@@ -53,8 +53,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
   <div class="container-fluid">
     <a class="navbar-brand" href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='img/cbt_logo.png') }}" alt="College Bound Tours Logo" height="60">
-      College Bound Tours
+      <img src="{{ url_for('static', filename='img/cbt_logo.png') }}" alt="College Bound Tours Logo" height="120">
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
       <span class="navbar-toggler-icon"></span>
@@ -64,15 +63,23 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
         <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('home') }}">Home</a>
+        </li>
+        
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            About
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{{ url_for('about') }}">About</a>
+            <a class="dropdown-item" href="{{ url_for('donate.gam_promise') }}">Donate</a>
+          </div>
+        </li>
+        
+
+        <li class="nav-item">
           <a class="nav-link" href="{{ url_for('tours.tour_schedule') }}">Tour Schedule</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('about') }}">About</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('donate.gam_promise') }}">Donate</a>
         </li>
 
         <li class="nav-item">
