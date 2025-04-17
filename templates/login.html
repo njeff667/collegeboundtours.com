@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Login{% endblock %}
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
+<div class="container mt-5 main-content" style="max-width: 500px;">
   <h3 class="text-center">If you have an account, enter your email and password</h3>
 
   <form method="POST" action="{{ url_for('auth.login') }}">

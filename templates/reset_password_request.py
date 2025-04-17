@@ -2,7 +2,7 @@
 {% block title %}Reset Password{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
+<div class="container mt-5 main-content" style="max-width: 500px;">
   <h3 class="text-center mb-4">Reset Your Password</h3>
   <form method="POST" action="{{ url_for('auth.reset_password_request') }}">
     <div class="mb-3">

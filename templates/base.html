@@ -31,19 +31,7 @@
 
     gtag('config', 'G-XXXXXXXXXX');
   </script>
-
-  <style>
-    .badge {
-      padding: 0.6em 1em;
-      font-size: 0.8em;
-      border-radius: 1em;
-    }
-    .badge-available { background-color: #d4edda; color: #155724; }
-    .badge-confirmed { background-color: #cce5ff; color: #004085; }
-    .badge-full { background-color: #f8d7da; color: #721c24; }
-    .badge-tentative { background-color: #fff3cd; color: #856404; }
-  </style>
-  
+    
   <!-- Favicons and icons can go here -->
 
   {% block head %}{% endblock %}
@@ -67,16 +55,14 @@
         </li>
         
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            About
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Who are we?
           </a>
           <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="{{ url_for('about') }}">About</a>
-            <a class="dropdown-item" href="{{ url_for('donate.gam_promise') }}">Donate</a>
+            <a class="dropdown-item" href="{{ url_for('about') }}">About College Bound Tours</a>
+            <a class="dropdown-item" href="{{ url_for('donate.gam_promise') }}">Donate a Seat!</a>
           </div>
         </li>
-        
 
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('tours.tour_schedule') }}">Tour Schedule</a>
@@ -87,50 +73,42 @@
         </li>
 
         {% if current_user.is_authenticated %}
-          {% if current_user.role == 'admin' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Admin Dashboard</a>
-            </li>
-          {% elif current_user.role == 'parent' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('parent.parent_dashboard') }}">Parent Dashboard</a>
-            </li>
-          {% elif current_user.role == 'student' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('student.student_dashboard') }}">Student Dashboard</a>
-            </li>
-          {% elif current_user.role == 'driver' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('driver.driver_panel') }}">Driver Panel</a>
-            </li>
-          {% endif %}
-
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('tours.my_reservations') }}">My Reservations</a>
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item dropdown nav-right">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <div class="user-initial-circle me-2">
+                {{ current_user.name[0]|upper }}
+              </div>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end " aria-labelledby="userDropdown">
+              <li>
+                <a class="dropdown-item" href="{{ url_for('tours.my_reservations') }}">My Reservations</a>
+              </li><li>
+                <a class="dropdown-item" href="{% if current_user.role == 'admin' %}
+                {{ url_for('admin.admin_dashboard') }}
+                {% elif current_user.role == 'parent' %}
+                {{ url_for('parent.parent_dashboard') }}
+                {% elif current_user.role == 'student' %}
+                {{ url_for('student.student_dashboard') }}
+                {% elif current_user.role == 'driver' %}
+                {{ url_for('driver.driver_panel') }}
+                {% endif %}">My Dashboard</a>
+              </li><li>
+                <a class="dropdown-item" href="{% if current_user.role == 'admin' %}
+                {{ url_for('admin.admin_dashboard') }}"
+                {% elif current_user.role == 'parent' %}
+                {{ url_for('parent.parent_dashboard') }}
+                {% elif current_user.role == 'student' %}
+                {{ url_for('student.student_profile') }}
+                {% elif current_user.role == 'driver' %}
+                {{ url_for('driver.driver_panel') }}
+                {% endif %}">My Profile</a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">Logout</a></li>
+            </ul>
           </li>
-          {% if current_user.is_authenticated %}
-          {% if current_user.role == 'admin' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Admin Profile</a>
-            </li>
-          {% elif current_user.role == 'parent' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('parent.parent_dashboard') }}">Parent Profile</a>
-            </li>
-          {% elif current_user.role == 'student' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('student.student_profile') }}">Student Profile</a>
-            </li>
-          {% elif current_user.role == 'driver' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('driver.driver_panel') }}">Driver Profile</a>
-            </li>
-          {% endif %}
-          {% endif %}
-          <li class="nav-item">
-            <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">Logout</a>
-          </li>
-
+        </ul>
         {% else %}
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
@@ -144,7 +122,7 @@
   </div>
 </nav>
 
-<div class="container py-4">
+<div class="container py-4 main">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -156,13 +134,16 @@
     {% endif %}
   {% endwith %}
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   {% block content %}{% endblock %}
 </div>
 
 {% block scripts %}{% endblock %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- FullCalendar styles and scripts (place these in your head or before your custom script) -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<!-- Popper JS -->
+<script src="https://unpkg.com/@popperjs/core@2"></script>
 
 </body>
 </html>
