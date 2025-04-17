@@ -5,9 +5,9 @@ from bson.objectid import ObjectId
 from datetime import datetime
 from pymongo import MongoClient
 from utils.security import sanitize_input
+from student.routes import generate_parent_token, send_parent_consent_email
+from extensions import db, mail, serializer
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client["college_bound"]
 tours_bp = Blueprint("tours", __name__)
 
 # Tour Schedule View
@@ -18,21 +18,23 @@ def tour_schedule():
     upcoming_tours = list(db.tour_instances.find({
         "date": {"$gte": formatted_date}
     }).sort("date", 1))
-    print=upcoming_tours
-    return render_template("tour_schedule.html", tours=upcoming_tours)
+    for upcoming_tour in upcoming_tours:
+        updated_date = str(upcoming_tour["date"]).split("T", 1)
+        upcoming_tour["date"] = updated_date[0]
+    initial_date = upcoming_tours[0]["date"]
+    return render_template("tour_schedule.html", tours=upcoming_tours, initial_date=initial_date)
 
 # Tour Reservation
-@tours_bp.route("/reserve/<tour_id>", methods=["POST"])
+@tours_bp.route("/reserve/<tour_id>", methods=["GET", "POST"])
 @login_required
 def reserve_tour(tour_id):
-    user_id = current_user.get_id()
-    tour = db.tour_instances.find_one({"_id": ObjectId(tour_id)})
+    tour = db.tour_instances.find_one({"_id": tour_id})
 
     if not tour:
         flash("Tour not found.")
         return redirect(url_for("tours.tour_schedule"))
 
-    existing = db.reservations.find_one({"user_id": ObjectId(user_id), "tour_id": ObjectId(tour_id)})
+    existing = db.reservations.find_one({"user_id": current_user.get_id(), "tour_id": ObjectId(tour_id)})
     if existing:
         flash("Already registered or waitlisted.")
         return redirect(url_for("tours.tour_schedule"))
@@ -41,8 +43,21 @@ def reserve_tour(tour_id):
     registered = tour.get("registered", 0)
     status = "Confirmed" if registered < capacity else "Waitlisted"
 
+    user_id = current_user.get_id()
+    student_profile = db.student_profiles.find_one({"user_id": user_id}) or {}
+
+    # After checking age < 18 and before finalizing reservation
+    if student_profile.get("age", 0) < 18:
+        token = generate_parent_token(user_id, tour_id, student_profile.get("parent_email"))
+        send_parent_consent_email(student_profile.get("parent_email"), token)
+
+        db.reservations.update_one(
+            {"user_id": current_user.get_id(), "tour_id": ObjectId(tour_id)},
+            {"$set": {"parent_verified": False}}
+        )
+
     db.reservations.insert_one({
-        "user_id": ObjectId(user_id),
+        "user_id": current_user.get_id(),
         "tour_id": ObjectId(tour_id),
         "status": status,
         "timestamp": datetime.utcnow()
@@ -59,7 +74,7 @@ def reserve_tour(tour_id):
 @login_required
 def my_reservations():
     pipeline = [
-        {"$match": {"user_id": ObjectId(current_user.get_id())}},
+        {"$match": {"user_id": current_user.get_id()}},
         {"$lookup": {
             "from": "tour_instances",
             "localField": "tour_id",
@@ -82,7 +97,7 @@ def complete_profile():
         school = sanitize_input(request.form.get("school"))
 
         db.users.update_one(
-            {"_id": ObjectId(current_user.get_id())},
+            {"_id": current_user.get_id()},
             {"$set": {
                 "phone": phone,
                 "grade": grade,
@@ -102,7 +117,7 @@ def choose_alternatives(tour_id):
     if request.method == "POST":
         selected_tour = sanitize_input(request.form.get("alternative_tour"))
         db.alternate_choices.insert_one({
-            "user_id": ObjectId(current_user.get_id()),
+            "user_id": current_user.get_id(),
             "original_tour_id": ObjectId(tour_id),
             "preferred_alternative_id": ObjectId(selected_tour),
             "timestamp": datetime.utcnow()

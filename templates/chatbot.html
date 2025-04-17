@@ -1,0 +1,82 @@
+<!-- templates/chatbot.html -->
+{% extends 'base.html' %}
+{% block title %}Ask College Bound Tours{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex align-items-center mb-3">
+    <img src="{{ url_for('static', filename='img/cbt_logo.png') }}" alt="College Bound Tours" height="40" class="me-2">
+    <h3 class="mb-0">College Bound Tours Q&A Bot</h3>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div id="chat-box" style="height: 350px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background-color: #f8f9fa;">
+        <div class="d-flex mb-2">
+          <div class="me-2">
+            <img src="https://img.icons8.com/color/48/000000/robot.png" width="30" />
+          </div>
+          <div><strong>Bot:</strong> Hi! Ask me anything about our tours, consent, or registration!</div>
+        </div>
+      </div>
+
+      <div class="input-group mt-3">
+        <input type="text" id="user-input" class="form-control" placeholder="Type your question...">
+        <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function appendMessage(sender, text, avatarUrl) {
+  const chatBox = document.getElementById("chat-box");
+  const wrapper = document.createElement("div");
+  wrapper.className = "d-flex mb-2";
+
+  if (sender === 'You') {
+    wrapper.innerHTML = `
+      <div class="me-2">
+        <img src="https://img.icons8.com/ios-filled/50/000000/user.png" width="30" />
+      </div>
+      <div><strong>${sender}:</strong> ${text}</div>
+    `;
+  } else {
+    wrapper.innerHTML = `
+      <div class="me-2">
+        <img src="https://img.icons8.com/color/48/000000/robot.png" width="30" />
+      </div>
+      <div><strong>${sender}:</strong> ${text}</div>
+    `;
+  }
+
+  chatBox.appendChild(wrapper);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById("user-input");
+  const question = input.value.trim();
+  if (!question) return;
+  appendMessage("You", question);
+  input.value = "";
+
+  fetch("/ai/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.answer) {
+      appendMessage("Bot", data.answer);
+    } else {
+      appendMessage("Bot", "Sorry, I couldn’t find an answer to that.");
+    }
+  })
+  .catch(err => {
+    appendMessage("Bot", "There was an error. Please try again later.");
+  });
+}
+</script>
+{% endblock %}

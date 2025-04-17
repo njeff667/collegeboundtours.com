@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Support the GAM Promise{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="mb-4">Support the GAM Promise Foundation</h1>
+  <p class="lead">Help us expand college access to students who need it most. Your donation goes directly to funding need-based seats for high school students through our GAM Promise initiative — named in honor of Gabrielle, Adriana, and Monica.</p>
+
+  <h3 class="mt-4">Every Dollar Counts</h3>
+  <p>Even a small gift can make a big difference. Your support allows a student to step foot on a campus, ask life-changing questions, and dream bigger about their future.</p>
+
+  <form action="{{ url_for('donate.process') }}" method="POST" class="mt-4">
+    <div class="mb-3">
+      <label for="donorName" class="form-label">Your Name</label>
+      <input type="text" class="form-control" id="donorName" name="donor_name" required>
+    </div>
+    <div class="mb-3">
+      <label for="donorEmail" class="form-label">Email</label>
+      <input type="email" class="form-control" id="donorEmail" name="donor_email" required>
+    </div>
+    <div class="mb-3">
+      <label for="amount" class="form-label">Donation Amount ($)</label>
+      <input type="number" class="form-control" id="amount" name="amount" min="1" required>
+    </div>
+    <button type="submit" class="btn btn-success">Donate Now</button>
+  </form>
+
+  <div class="alert alert-secondary mt-4">
+    🧾 Donations to the GAM Promise Foundation are used solely to fund student tour seats and support materials. Thank you for helping us make college dreams more accessible.
+  </div>
+</div>
+{% endblock %}

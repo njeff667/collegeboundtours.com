@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Unanswered Questions{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-4">Unanswered GPT Questions</h2>
+
+  {% if questions %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">Question</th>
+          <th scope="col">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in questions %}
+        <tr>
+          <td>{{ q.question }}</td>
+          <td>{{ q.timestamp.strftime('%b %d, %Y %I:%M %p') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="alert alert-info">No unanswered questions logged yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

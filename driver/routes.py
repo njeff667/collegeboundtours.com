@@ -1,12 +1,11 @@
 # driver/routes.py
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
-from pymongo import MongoClient
+from extensions import db, mail, serializer
 from utils.security import role_required
 from bson.objectid import ObjectId
+from datetime import datetime
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client["college_bound"]
 driver_bp = Blueprint("driver", __name__)
 
 @driver_bp.route("/panel")

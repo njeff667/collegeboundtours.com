@@ -2,107 +2,97 @@
 {% block title %}Upcoming Tours{% endblock %}
 
 {% block content %}
+
 <div class="container mt-4">
   <h2 class="mb-4">Upcoming College Tours</h2>
 
-  <!-- Filters -->
-  <form method="GET" action="{{ url_for('tours.tour_schedule') }}" class="row g-2 mb-4">
-    <div class="col-md-4">
-      <input type="text" name="school" placeholder="Search by school..." class="form-control" value="{{ request.args.get('school', '') }}">
-    </div>
-    <div class="col-md-4">
-      <select name="status" class="form-select">
-        <option value="">Filter by status</option>
-        <option value="Available">Available</option>
-        <option value="Confirmed">Confirmed</option>
-        <option value="Full">Full</option>
-        <option value="Tentative">Tentative</option>
-      </select>
-    </div>
-    <div class="col-md-4">
-      <button class="btn btn-primary w-100">Apply Filters</button>
-    </div>
-  </form>
+  <!-- Toggle Button -->
+  <div class="mb-4">
+    <button class="btn btn-outline-primary" id="toggleView">Switch to List View</button>
+  </div>
 
-  <!-- Calendar -->
+<!-- Calendar view is visible by default -->
+<div id="calendarView" style="display: block;">
   <div id="calendar" style="max-width: 100%; margin: 0 auto;"></div>
+</div>
 
-  <!-- Tour Cards -->
+<!-- List view is hidden initially -->
+<div id="listView" style="display: none;">
   {% for tour in tours %}
-  <div class="card my-3">
-    <div class="card-body">
-      <h5 class="card-title">{{ tour.title or "Untitled Tour" }}</h5>
-      <p class="card-text">
-        <strong>Date:</strong> {{ tour.date if tour.date else "TBD" }}<br>
-        <strong>Status:</strong> {{ tour.status }}<br>
-        <strong>Capacity:</strong> {{ tour.registered }}/{{ tour.capacity }}<br>
-        {% if tour.schools %}
-        <strong>Schools:</strong> {{ tour.schools | join(', ') }}
-        {% endif %}
-      </p>
-
-      <form method="POST" action="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}">
-        <button class="btn btn-primary" type="submit">Reserve</button>
-      </form>
-
-      <!-- Modal Trigger -->
-      <button class="btn btn-outline-info btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#tourModal{{ tour._id }}">Details</button>
-
-      <!-- Modal -->
-      <div class="modal fade" id="tourModal{{ tour._id }}" tabindex="-1" aria-labelledby="tourModalLabel{{ tour._id }}" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="tourModalLabel{{ tour._id }}">{{ tour.title or "Tour Details" }}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <p><strong>Date:</strong> {{ tour.date }}</p>
-              <p><strong>Status:</strong> {{ tour.status }}</p>
-              <p><strong>Schools:</strong> {{ tour.schools | join(', ') }}</p>
-              {% if tour.details %}
-              <p>{{ tour.details }}</p>
-              {% endif %}
-            </div>
-            <div class="modal-footer">
-              <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-              <a href="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}" class="btn btn-primary">Reserve Spot</a>
-            </div>
-          </div>
-        </div>
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title">{{ tour.title or "Untitled Tour" }}</h5>
+        <p class="card-text">
+          <strong>Date:</strong> {{ tour.date if tour.date else "TBD" }}<br>
+          <strong>Status:</strong> {{ tour.status }}<br>
+          <strong>Capacity:</strong> {{ tour.registered }}/{{ tour.capacity }}
+        </p>
+        <form method="POST" action="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}">
+          <button class="btn btn-primary" type="submit">Reserve</button>
+        </form>
       </div>
     </div>
-  </div>
   {% endfor %}
 </div>
-{% endblock %}
 
-{% block scripts %}
-<!-- FullCalendar Scripts -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  var calendarEl = document.getElementById('calendar');
-  var calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
-    events: [
-      {% for tour in tours %}
-        {
-          title: "{{ tour.title }} - {{ tour.schools | join(', ') }}",
-          start: "{{ tour.date }}",
-          allDay: true,
-          color: {
-            'Tentative': '#fff3cd',
-            'Confirmed': '#cce5ff',
-            'Available': '#d4edda',
-            'Full': '#f8d7da'
-          }["{{ tour.status }}"]
-        },
-      {% endfor %}
-    ]
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggleBtn = document.getElementById('toggleView');
+    const listView = document.getElementById('listView');
+    const calendarView = document.getElementById('calendarView');
+    let calendar;
+    let calendarInitialized = false;
+
+    function renderCalendar() {
+      if (!calendarInitialized) {
+        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+          initialView: 'dayGridMonth',
+          initialDate: '{{ initial_date if initial_date else "" }}',
+          events: [
+            {% for tour in tours %}
+            {                
+              title: "{{ tour.university_names }}",
+              start: '{{ tour.date if tour.date else "" }}',
+              url: '{{ url_for("tours.reserve_tour", tour_id=tour._id) }}',
+              color: {
+                'Tentative': '#fff3cd',
+                'Confirmed': '#cce5ff',
+                'Available': '#d4edda',
+                'Full': '#f8d7da'
+              }["{{ tour.status }}"]
+            },
+            {% endfor %}
+          ],
+          eventContent: function(info) {
+            return { html: `<b>${info.event.title}</b>` };
+          },
+          eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            if (info.event.url) {
+              window.open(info.event.url, '_blank');
+            }
+          }
+        });
+        calendar.render();
+        calendarInitialized = true;
+      }
+    }
+
+    // Render calendar on page load
+    renderCalendar();
+
+    toggleBtn.addEventListener('click', function () {
+      if (calendarView.style.display === 'none') {
+        calendarView.style.display = 'block';
+        listView.style.display = 'none';
+        toggleBtn.innerText = 'Switch to List View';
+        renderCalendar();
+      } else {
+        calendarView.style.display = 'none';
+        listView.style.display = 'block';
+        toggleBtn.innerText = 'Switch to Calendar View';
+      }
+    });
   });
-  calendar.render();
-});
 </script>
 {% endblock %}

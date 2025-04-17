@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Operations Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="mb-4">Operations Dashboard</h2>
+
+  <div class="btn-group mb-4" role="group">
+    <button class="btn btn-outline-primary" id="toggle-now">Current Operations</button>
+    <button class="btn btn-outline-secondary" id="toggle-future">Future Operations</button>
+  </div>
+
+  <div id="current-operations" class="dashboard-section">
+    <h4>Current Tours</h4>
+    <p><strong>Confirmed Tours:</strong> {{ current.confirmed_tours }}</p>
+    <p><strong>Drivers Required:</strong> {{ current.drivers_required }}</p>
+    <p><strong>Drivers Available:</strong> {{ current.drivers_available }}</p>
+    <p><strong>Vehicles Required:</strong> {{ current.vehicles_required }}</p>
+    <p><strong>Vehicles Available:</strong> {{ current.vehicles_available }}</p>
+    <p><strong>Driver Hours Remaining:</strong> {{ current.driver_hours }}</p>
+    <p><strong>Vehicle Maintenance Issues:</strong> <a href="{{ url_for('operations.vehicle_maintenance_issues') }}">{{ current.vehicle_maintenance_issues }}</a></p>
+    <p><strong>Pending Parental Signatures:</strong> {{ current.missing_signatures }}</p>
+  </div>
+
+  <div id="future-operations" class="dashboard-section d-none">
+    <h4>Next 24 Hours</h4>
+    <p><strong>Upcoming Tours:</strong> {{ future.confirmed_tours }}</p>
+    <p><strong>Drivers Needed:</strong> {{ future.drivers_required }}</p>
+    <p><strong>Drivers Scheduled:</strong> {{ future.drivers_available }}</p>
+    <p><strong>Vehicles Scheduled:</strong> {{ future.vehicles_required }}</p>
+    <p><strong>Vehicles Available:</strong> {{ future.vehicles_available }}</p>
+    <p><strong>Driver Hours Capacity:</strong> {{ future.driver_hours }}</p>
+    <p><strong>Maintenance Checks Pending:</strong> <a href="{{ url_for('operations.vehicle_maintenance_issues') }}">{{ future.vehicle_maintenance_issues }}</a></p>
+    <p><strong>Unverified Parent Signatures:</strong> {{ future.missing_signatures }}</p>
+  </div>
+</div>
+
+<script>
+  document.getElementById("toggle-now").addEventListener("click", function () {
+    document.getElementById("current-operations").classList.remove("d-none");
+    document.getElementById("future-operations").classList.add("d-none");
+  });
+  document.getElementById("toggle-future").addEventListener("click", function () {
+    document.getElementById("future-operations").classList.remove("d-none");
+    document.getElementById("current-operations").classList.add("d-none");
+  });
+</script>
+<script>
+  setInterval(() => {
+    location.reload(); // refreshes the entire page
+  }, 60000); // every 60 seconds
+</script>
+  
+{% endblock %}

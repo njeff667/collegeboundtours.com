@@ -3,5 +3,12 @@
 <div class="container mt-5">
   <h2>Student Dashboard</h2>
   <p>View upcoming college tours and confirmations.</p>
+  <ul>
+    {% for reservation in reservations %}]
+    {{ reservation }}
+    {% endfor %}
+  </ul>
+
+
 </div>
 {% endblock %}

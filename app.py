@@ -1,12 +1,31 @@
 # Refactored college_bound/app.py
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager
-from pymongo import MongoClient
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
 import os
 from utils.security import sanitize_input
+from extensions import db, mail, serializer
 
+# Blueprint registration
+from ai.routes import ai_bp
+from auth.routes import auth_bp
+from tours.routes import tours_bp
+from admin.routes import admin_bp
+from driver.routes import driver_bp
+from operations.routes import operations_bp
+from parent.routes import parent_bp
+from student.routes import student_bp
+from donate.routes import donate_bp
+from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.contrib.facebook import make_facebook_blueprint, facebook
+import extensions
+from models.user import User
+
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(get_remote_address, app=None, default_limits=["30 per hour"])
 
 # Load environment variables
 load_dotenv()
@@ -14,10 +33,28 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
+app.register_blueprint(ai_bp, url_prefix="/auth")
+app.register_blueprint(auth_bp, url_prefix="/auth")
+app.register_blueprint(tours_bp, url_prefix="/tours")
+app.register_blueprint(admin_bp, url_prefix="/admin")
+app.register_blueprint(driver_bp, url_prefix="/driver")
+app.register_blueprint(operations_bp, url_prefix="/operations")
+app.register_blueprint(parent_bp, url_prefix="/parent")
+app.register_blueprint(student_bp, url_prefix="/student")
+app.register_blueprint(donate_bp, url_prefix="/donate")
 
-# MongoDB setup
-client = MongoClient(os.getenv("mongodb://localhost:27017/"))#MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
-db = client["college_bound"]
+from flask_mail import Mail
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your_email@example.com'
+app.config['MAIL_PASSWORD'] = 'your_email_password'
+app.config['MAIL_DEFAULT_SENDER'] = 'your_email@example.com'
+
+mail = Mail(app)
+mail.init_app(app)
+limiter.init_app(app)
 
 # Login manager setup
 login_manager = LoginManager()
@@ -26,30 +63,11 @@ login_manager.login_view = "auth.login"
 
 login_manager.init_app(app)
 
-from models.user import User
-
 @login_manager.user_loader
 def load_user(user_id):
     user_doc = db.users.find_one({"_id": user_id})
     return User(user_doc) if user_doc else None
     
-# Blueprint registration
-from auth.routes import auth_bp
-from tours.routes import tours_bp
-from admin.routes import admin_bp
-from driver.routes import driver_bp
-from parent.routes import parent_bp
-from student.routes import student_bp
-from flask_dance.contrib.google import make_google_blueprint, google
-from flask_dance.contrib.facebook import make_facebook_blueprint, facebook
-
-app.register_blueprint(auth_bp, url_prefix="/auth")
-app.register_blueprint(tours_bp, url_prefix="/tours")
-app.register_blueprint(admin_bp, url_prefix="/admin")
-app.register_blueprint(driver_bp, url_prefix="/driver")
-app.register_blueprint(parent_bp, url_prefix="/parent")
-app.register_blueprint(student_bp, url_prefix="/student")
-
 # Google OAuth Blueprint
 google_bp = make_google_blueprint(
     client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID"),

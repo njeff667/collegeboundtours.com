@@ -1,0 +1,47 @@
+/* General page background */
+body {
+    background-color: #f8f9fa; /* Light gray-blue */
+}
+
+/* Card look */
+.card {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* Headings */
+h1, h2, h3, h4 {
+    color: #002D62; /* Deep navy */
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #0056b3;
+    border-color: #00408a;
+}
+
+.btn-primary:hover {
+    background-color: #003d80;
+}
+
+/* Alerts */
+.alert-info {
+    background-color: #e9f5ff;
+    border: 1px solid #b6e0fe;
+}
+
+/* Inputs */
+.form-control, .form-select {
+    border-radius: 8px;
+}
+
+/* Calendar specific tweaks */
+#calendar {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}

@@ -1,14 +1,22 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% block title %}About Us - College Bound Tours{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-  <h2>About College Bound Tours</h2>
-  <p>We're a family- and veteran-owned company helping students make confident college decisions.</p>
+<div class="container py-5">
+  <h1 class="mb-4">About College Bound Tours</h1>
 
-  <h4>Our Mission</h4>
-  <p>To make campus access simple, educational, and inspiring — for every student, every trip.</p>
+  <p class="lead">It all began when I took my high school junior on a college tour during spring break — and because we’re a family of five, her younger sisters (a 9th grader and a 5th grader) came along for the ride. Somewhere along the way, my junior fell in love with one of the schools. As we talked through the experience together, a question kept coming up among all three girls — one that stuck with me long after the trip: <strong>why doesn't every student have the opportunity to experience this pivotal step in their educational journey?</strong></p>
 
-  <h4>Service Area</h4>
-  <p>Based in Evans, GA — serving the CSRA and surrounding counties.</p>
+  <h3 class="mt-5">Why College Visits Matter</h3>
+  <p>Nearly <strong>80% of students</strong> report that an on-campus visit significantly influences their decision to apply or enroll. (<a href="https://www.bhdp.com/insights/research-prospective-college-student-campus-visit-and-its-impact-matriculation" target="_blank">BHD&P Research</a>)</p>
+  <p>And according to a <strong>2017 Gallup-Strada poll</strong>, approximately half of U.S. adults who pursued or completed a degree would change at least one education decision — their major, institution, or degree type. Those with some college but no degree were the most likely to express regret. A guided college tour could help students make more informed choices and potentially reduce future regret. (<a href="https://news.gallup.com/poll/211979/half-adults-change-one-education-decision.aspx" target="_blank">Gallup Education Report</a>)</p>
+  <p>According to <strong>Encoura's 2023 State of Campus Visits Report</strong>, while 82% of underclass high school students intend to visit college campuses, only 48% of seniors follow through. This missed opportunity has a measurable impact: students who visit a college campus are significantly more likely to enroll. Guided tours can be the deciding factor in turning college aspirations into reality. (<a href="https://www.encoura.org/resources/wake-up-call/the-state-of-college-campus-visits/" target="_blank">Encoura Report</a>)</p>
+  <p class="mt-3">To learn more about our tours, <a href="{{ url_for('tours.tour_schedule') }}">view our upcoming tour schedule</a> and see how your student can get started. You can also find this link on our <a href="{{ url_for('home') }}">homepage</a> for quick access.</p>
+
+  <h3 class="mt-5">Introducing the GAM Promise</h3>
+  <p>The <strong>GAM Promise</strong> is our commitment to helping as many students as possible experience life-changing college visits — regardless of financial status. Named after my daughters — <strong>Gabrielle, Adriana, and Monica</strong> — the GAM Promise Foundation ensures that <strong>10% of College Bound Tours’ profits go toward funding need-based and sponsored seats</strong> for students across our region.</p>
+  <p>Whether it’s your child’s first trip to a university or a chance to help them feel confident in their college decision, our mission is clear: <strong>no student should miss out due to cost.</strong></p>
+
+  <a href="{{ url_for('donate.gam_promise') }}" class="btn btn-primary mt-4">Support the GAM Promise</a>
 </div>
 {% endblock %}

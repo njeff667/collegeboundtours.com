@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Guardian Verification Report{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="mb-4">Pending Parental Consent</h2>
+
+  {% if reservations %}
+  <table class="table table-bordered table-hover">
+    <thead class="table-light">
+      <tr>
+        <th>Student Name</th>
+        <th>Tour Title</th>
+        <th>Tour Date</th>
+        <th>Parent Email</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in reservations %}
+      <tr>
+        <td>{{ item.student_name }}</td>
+        <td>{{ item.tour_title }}</td>
+        <td>{{ item.tour_date.strftime('%B %d, %Y') if item.tour_date else 'TBD' }}</td>
+        <td>{{ item.parent_email }}</td>
+        <td><span class="badge bg-warning">Consent Needed</span></td>
+        <td>
+          <form method="POST" action="{{ url_for('admin.resend_parent_email', reservation_id=item.reservation_id) }}">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Resend Email</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No pending parental confirmations at this time.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,14 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Welcome!{% endblock %}
 
-{% extends "base.html" %}
-{% block title %}Welcome to College Bound Tours{% endblock %}
 {% block content %}
-<div class="container mt-4">
-  <h1>Explore Your Future</h1>
-  <a href="{{ url_for('tours.tour_schedule') }}" class="btn btn-primary">View Tour Schedule</a>
-  <div>
-    {% for photo in social_photos %}
-      <img src="{{ photo.url }}" style="max-width: 200px;">
-    {% endfor %}
+<div class="container py-5">
+  <h1 class="mb-4">Your Road to College Starts Here</h1>
+  <p class="lead">We believe every student deserves the opportunity to explore their future with confidence. At College Bound Tours, we make it easy for high school students and their families to visit colleges, ask real questions, and experience campuses firsthand — all in a safe, structured, and affordable way.</p>
+
+  <h3 class="mt-5">Why Choose College Bound Tours?</h3>
+  <ul class="list-group list-group-flush mb-5">
+    <li class="list-group-item">🚐 <strong>Hassle-Free Group Travel</strong>: We coordinate transportation, schedules, and logistics so you can focus on the experience — not the planning.</li>
+    <li class="list-group-item">✅ <strong>Trusted & Safe</strong>: Every tour is led by background-checked drivers, with built-in parental consent protocols, ID verification, and real-time communication.</li>
+    <li class="list-group-item">🎓 <strong>Real College Exposure</strong>: From local universities to top-tier institutions, we give students the chance to feel what it’s like on campus — from residence halls to bookstores.</li>
+    <li class="list-group-item">👨‍👩‍👧 <strong>Maximizing Student Access</strong>: Our priority is helping as many high school students as possible take part in life-changing college visits. Every student is guaranteed one seat for themselves, with the option to bring <strong>one parent or guardian</strong>. Need an extra guest? We’ve got a <strong>waitlist system</strong> just for that. Can’t attend as a parent? No problem — with signed consent, your child can still go and experience the tour safely under our supervision.</li>
+    <li class="list-group-item">📝 <strong>Simple Sign-Up</strong>: Whether you're a student or a parent, registration takes just minutes. Confirmations, reminders, and updates are all automated.</li>
+  </ul>
+
+  <h3 class="mb-3">Upcoming Tours</h3>
+  <p>Explore our <a href="{{ url_for('tours.tour_schedule') }}">Tour Schedule</a> and reserve your spot today! Spots are limited. Tours are filling fast.</p>
+
+  <h3 class="mt-5">What Families Are Saying</h3>
+  <blockquote class="blockquote">
+    <p class="mb-0">“College Bound Tours made the whole process so easy. My daughter fell in love with two schools we wouldn’t have even considered!”</p>
+    <footer class="blockquote-footer">Erica Z., Parent, Augusta, GA</footer>
+  </blockquote>
+
+  <div class="alert alert-info mt-5" role="alert">
+    🔒 <strong>Safe. Supported. College Ready.</strong><br>
+    We're more than just a bus ride — we're your bridge to the future.
   </div>
 </div>
 {% endblock %}

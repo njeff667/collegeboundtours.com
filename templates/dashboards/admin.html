@@ -2,6 +2,124 @@
 {% block content %}
 <div class="container mt-5">
   <h2>Admin Dashboard</h2>
+  This dashboard should be broken down for current ops and future og_description
+  current ops is the current day and next 48 hours
+  we need to know the number of tours,
+  number of drivers needed, number of hours that each driver has before we have to pay overtime or we max out legal driving hours.
+  number of vehicles needed,
+  number of vehicles available,
+  student confirmations, who needs a parental consent for,
+  vehicle maintenece,
+
   <p>Manage users, tours, and reports from here.</p>
-</div>
+  <div class="row">
+    <div class="col-4 modal-header">
+      Category
+    </div><div class="col-4 modal-header">
+      Total
+    </div><div class="col-4 modal-header">
+      Action
+    </div>
+  </div><div class="row">
+    <div class="col-4">
+      Users
+    </div><div class="col-4">
+      {{ stats.total_users }}
+    </div><div class="col-4">
+      <button class="btn btn-primary">Manage</button>
+    </div>
+  </div><div class="row">
+    <div class="col-4">
+      Tours
+    </div><div class="col-4">
+      {{ stats.total_tours }}
+    </div><div class="col-4">
+      <button class="btn btn-primary">Manage</button>
+    </div>
+  </div><div class="row">
+    <div class="col-4">
+      Reservations
+    </div><div class="col-4">
+      {{ stats.total_reservations }}
+    </div><div class="col-4">
+      <button class="btn btn-primary">Manage</button>
+    </div>
+  </div><div class="row">
+    <div class="col-4">
+      Tour Templates
+    </div><div class="col-4">
+      {{ stats.total_tour_templates }}
+    </div><div class="col-4">
+      <button class="btn btn-primary">Manage</button>
+    </div>
+  </div><div class="row">
+    <div class="col-4">
+      Univesity Types
+    </div><div class="col-4">
+      {{ stats.total_university_types }}
+    </div><div class="col-4">
+      <button class="btn btn-primary">Manage</button>
+    </div>
+    </div><div class="row">
+      <div class="col-4">
+        Universities
+      </div><div class="col-4">
+        {{ stats.total_universities }}
+      </div><div class="col-4">
+        <button class="btn btn-primary">Manage</button>
+      </div>
+    </div>
+  </div>
+  <h2 class="mb-4">Admin Dashboard</h2>
+  <div class="row">
+    <div class="col-md-4">
+      <div class="card text-white bg-primary mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Total Users</h5>
+          <p class="card-text display-6">{{ stats.total_users }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-white bg-success mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Total Tours</h5>
+          <p class="card-text display-6">{{ stats.total_tours }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-white bg-info mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Total Reservations</h5>
+          <p class="card-text display-6">{{ stats.total_reservations }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card text-white bg-warning mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Unverified Guardians</h5>
+          <p class="card-text display-6">{{ stats.unverified_guardians }}</p>
+          <a href="{{ url_for('admin.guardian_verification_report') }}" class="btn btn-light mt-2">View Details</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card text-white bg-danger mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Students Missing Medical Info</h5>
+          <p class="card-text display-6">{{ stats.pending_medical }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    setInterval(() => {
+      location.reload(); // refreshes the entire page
+    }, 60000); // every 60 seconds
+  </script>
 {% endblock %}

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Student Profile{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <h2>Student Profile</h2>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-info">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Profile Details</span>
+      {% if student %}
+        <button class="btn btn-sm btn-outline-warning" onclick="toggleEdit(true)">Edit</button>
+      {% endif %}
+    </div>
+    <div class="card-body">
+
+      {% if student %}
+        <div id="view-profile">
+          <dl class="row">
+            <dt class="col-sm-4">High School Student</dt>
+            <dd class="col-sm-8">{{ student.is_high_school_student }}</dd>
+
+            <dt class="col-sm-4">Current Grade Level</dt>
+            <dd class="col-sm-8">{{ student.current_grade_level }}</dd>
+
+            <dt class="col-sm-4">Full Name</dt>
+            <dd class="col-sm-8">{{ student.first_name }} {{ student.middle_name }} {{ student.last_name }}</dd>
+
+            <dt class="col-sm-4">Email Address</dt>
+            <dd class="col-sm-8">{{ student.email }}</dd>
+
+            <dt class="col-sm-4">Mailing Address</dt>
+            <dd class="col-sm-8">
+              {{ student.street }}, {{ student.city }}, {{ student.state }} {{ student.postal_code }}, {{ student.country }}
+            </dd>
+
+            <dt class="col-sm-4">Cell Phone</dt>
+            <dd class="col-sm-8">{{ student.cell_phone }}</dd>
+
+            <dt class="col-sm-4">Text Opt In</dt>
+            <dd class="col-sm-8">{{ student.text_opt_in }}</dd>
+
+            <dt class="col-sm-4">Gender</dt>
+            <dd class="col-sm-8">{{ student.gender }}</dd>
+
+            <dt class="col-sm-4">Birthdate</dt>
+            <dd class="col-sm-8">{{ student.birthdate }}</dd>
+
+            <dt class="col-sm-4">High School Name</dt>
+            <dd class="col-sm-8">{{ student.high_school_name }}</dd>
+
+            <dt class="col-sm-4">High School Address</dt>
+            <dd class="col-sm-8">
+              {{ student.high_school_address }}, {{ student.hs_city }}, {{ student.hs_state }} {{ student.hs_postal_code }}
+            </dd>
+
+            <dt class="col-sm-4">CEEB Code</dt>
+            <dd class="col-sm-8">{{ student.ceeb_code }}</dd>
+
+            <dt class="col-sm-4">Academic Interest</dt>
+            <dd class="col-sm-8">{{ student.academic_interest }}</dd>
+          </dl>
+        </div>
+      {% endif %}
+
+      <div id="edit-profile-form" style="{% if student %}display:none;{% endif %}">
+        <form method="POST" action="{{ url_for('student.student_profile') }}">
+          {% include 'student_profile_form.html' %}          
+          <button type="submit" class="btn btn-primary">Save Profile</button>
+          {% if student %}<button type="button" class="btn btn-secondary" onclick="toggleEdit(false)">Cancel</button>{% endif %}
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleEdit(showEdit) {
+  const view = document.getElementById("view-profile");
+  const form = document.getElementById("edit-profile-form");
+  if (showEdit) {
+    view.style.display = 'none';
+    form.style.display = 'block';
+  } else {
+    view.style.display = 'block';
+    form.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

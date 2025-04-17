@@ -3,13 +3,15 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
-from pymongo import MongoClient
 from models.user import User
 from utils.security import sanitize_input
+from extensions import db, mail, serializer
 import re, uuid
+# In auth/routes.py
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from flask import current_app as app
+from utils.email_verification import send_reset_email, get_serializer
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client["college_bound"]
 auth_bp = Blueprint("auth", __name__)
 
 def is_strong_password(password):
@@ -83,3 +85,37 @@ def logout():
 @login_required
 def profile():
     return render_template("auth/profile.html", user=current_user)
+
+print(f"current_user: {current_user}")
+
+@auth_bp.route("/reset-password", methods=["GET", "POST"])
+def reset_password_request():
+    if request.method == "POST":
+        email = sanitize_input(request.form.get("email"))
+        user = db.users.find_one({"email": email})
+        if user:
+            token = s.dumps(email, salt='password-reset')
+            send_reset_email(email, token)
+            flash("Password reset link sent. Check your email.", "info")
+        else:
+            flash("Email not found.", "danger")
+        return redirect(url_for("auth.login"))
+    return render_template("auth/reset_password_request.html")
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    try:
+        s = get_serializer()
+        email = s.loads(token, salt='password-reset', max_age=3600)
+    except (SignatureExpired, BadSignature):
+        flash("The reset link is invalid or expired.", "danger")
+        return redirect(url_for("auth.reset_password_request"))
+
+    if request.method == "POST":
+        new_password = generate_password_hash(sanitize_input(request.form.get("password")))
+        db.users.update_one({"email": email}, {"$set": {"password": new_password}})
+        flash("Password updated successfully. Please log in.", "success")
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/reset_password_form.html", token=token)
