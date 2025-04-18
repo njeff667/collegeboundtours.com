@@ -1,0 +1,13 @@
+@tours.route('/admin/student_ids')
+@login_required
+def admin_student_ids():
+    if not current_user.is_admin():
+        flash("Access denied.")
+        return redirect(url_for('home'))
+
+    from your_database_setup import db
+    users = db.users.find({
+        "profile.student_id_file": {"$exists": True}
+    })
+
+    return render_template('admin_student_ids.html', users=users)

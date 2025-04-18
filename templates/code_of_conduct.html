@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5" style="max-width: 700px;">
+    <h2 class="mb-4 text-center">Sign Code of Conduct</h2>
+
+    <p>Please carefully read the Code of Conduct agreement before signing. 
+    Your agreement ensures a safe, respectful, and enjoyable tour experience for all participants.</p>
+
+    <div class="card my-4">
+        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+            <h5 class="card-title">Code of Conduct</h5>
+            <p>
+                • I will behave respectfully towards other participants, staff, and tour guides at all times.<br>
+                • I will follow all instructions provided by the tour leaders.<br>
+                • I will represent myself, my school, and my community with integrity.<br>
+                • I will not engage in illegal, disruptive, or unsafe activities.<br>
+                • I understand that violations may result in my removal from the tour without refund.<br>
+            </p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('tours.sign_code_of_conduct') }}">
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="agree" name="agree" required>
+            <label class="form-check-label" for="agree">
+                I have read and agree to the terms of the Code of Conduct.
+            </label>
+        </div>
+
+        <div class="mb-3">
+            <label for="signature" class="form-label">Type Your Full Name (Signature):</label>
+            <input type="text" name="signature" id="signature" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Sign Code of Conduct</button>
+    </form>
+</div>
+{% endblock %}

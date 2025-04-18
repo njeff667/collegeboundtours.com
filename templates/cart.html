@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Your Cart</h2>
+
+    {% if cart_items %}
+        <table class="table table-bordered table-striped mt-4">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Reservation Added</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ student_map[item.student_id] }}</td>
+                    <td>{{ item.added_at.strftime('%Y-%m-%d %H:%M') if item.added_at else 'Unknown' }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('tours.remove_from_cart', cart_id=item._id) }}">
+                            <button class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="{{ url_for('tours.checkout') }}" class="btn btn-success">Proceed to Checkout</a>
+
+    {% else %}
+        <div class="alert alert-info mt-4">Your cart is currently empty.</div>
+    {% endif %}
+</div>
+{% endblock %}

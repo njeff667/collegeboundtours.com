@@ -2,39 +2,37 @@
 {% block title %}Upcoming Tours{% endblock %}
 
 {% block content %}
+<h1 class="mb-4">Upcoming College Tours</h1>
 
-<div class="container mt-5 main-content">
-  <h2 class="mb-4">Upcoming College Tours</h2>
-
-  <!-- Toggle Button -->
-  <div class="mb-4">
-    <button class="btn btn-outline-primary" id="toggleView">Switch to List View</button>
-  </div>
+<!-- Toggle Button -->
+<div class="mb-4">
+  <button class="btn btn-outline-primary" id="toggleView">Switch to List View</button>
+</div>
 
 <!-- Calendar view is visible by default -->
 <div id="calendarView" style="display: block;">
-  <div id="calendar" style="max-width: 100%; margin: 0 auto;"></div>
+<div id="calendar" style="max-width: 100%; margin: 0 auto;"></div>
 </div>
 
 <!-- List view is hidden initially -->
 <div id="listView" style="display: none;">
-  {% for tour in tours %}
-    <div class="card mb-3">
-      <div class="card-body">
-        <h5 class="card-title">{{ tour.title or "Untitled Tour" }}</h5>
-        <p class="card-text">
-          <strong>Date:</strong> {{ tour.date if tour.date else "TBD" }}<br>
-          <strong>Status:</strong> {{ tour.status }}<br>
-          <strong>Capacity:</strong> {{ tour.registered }}/{{ tour.capacity }}
-        </p>
-        <form method="POST" action="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}">
-          <button class="btn btn-primary" type="submit">Reserve</button>
-        </form>
-      </div>
+{% for tour in tours %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">{{ tour.title or "Untitled Tour" }}</h5>
+      <p class="card-text">
+        <strong>Date:</strong> {{ tour.date if tour.date else "TBD" }}<br>
+        <strong>Status:</strong> {{ tour.status }}<br>
+        <strong>Capacity:</strong> {{ tour.registered }}/{{ tour.capacity }}
+      </p>
+      <form method="GET" action="{{ url_for('tours.tour_details', tour_id=tour._id) }}">
+        <button class="btn btn-primary" type="submit">View</button>
+      </form>
     </div>
-  {% endfor %}
-</div>
-
+  </div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const toggleBtn = document.getElementById('toggleView');
@@ -53,7 +51,7 @@
             {                
               title: "{{ tour.university_names }}",
               start: '{{ tour.date if tour.date else "" }}',
-              url: '{{ url_for("tours.reserve_tour", tour_id=tour._id) }}',
+              url: '{{ url_for("tours.tour_details", tour_id=tour._id) }}',
               color: {
                 'Tentative': '#fff3cd',
                 'Confirmed': '#cce5ff',

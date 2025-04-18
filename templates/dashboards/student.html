@@ -1,15 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Student Dashboard{% endblock %}
 {% block content %}
-<div class="container mt-5 main-content">
-  <h2>Student Dashboard</h2>
-  <p>View upcoming college tours and confirmations.</p>
-  <ul>
-    {% for reservation in reservations %}]
-    {{ reservation }}
-    {% endfor %}
-  </ul>
-
-
-</div>
+<h1 class="mb-4">Student Dashboard</h1>
+<p>View upcoming college tours and confirmations.</p>
+<ul>
+  {% for reservation in reservations %}]
+  {{ reservation }}
+  {% endfor %}
+</ul>
+{% include "dashboards/tour_dashboard_insert.html" %}
 {% endblock %}

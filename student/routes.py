@@ -55,8 +55,10 @@ def send_parent_consent_email(parent_email, token):
 @login_required
 @role_required("student")
 def student_profile():
-    profile = db.student_profiles.find_one({"user_id": current_user.id}) or {}
-
+    tour_id = None
+    if request.args.get("tour_id"):
+        tour_id = sanitize_input(request.args.get("tour_id"))
+        print(f"tour_id: {tour_id}")
     if request.method == "POST":
         student_data = {
             "user_id": current_user.id,
@@ -86,13 +88,17 @@ def student_profile():
             "academic_interest": sanitize_input(request.form.get("academic_interest")),
             "updated_at": datetime.utcnow()
         }
-
-        db.student_profiles.update_one(
-            {"user_id": current_user.id},
-            {"$set": student_data},
+        
+        updated_profile = db.users.update_one(
+            {"_id": current_user.id},
+            {"$set": {"profile": student_data}},
             upsert=True
         )
+        print(updated_profile)
 
         flash("Profile updated successfully.")
-
+        if tour_id:
+            return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
+    user = db.users.find_one({"_id": current_user.id, "profile": {"$exists": True}}) or {}
+    profile=user["profile"]
     return render_template("student_profile.html", student=profile, is_editable=False if profile else True)

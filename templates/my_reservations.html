@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 {% block title %}My Reservation{% endblock %}
 {% block content %}
-<div class="container mt-4 main-content">
-  <h4>Your Reservation History</h4>
-  {% for r in history %}
-    <div class="card mb-2">
-      <div class="card-body">
-        <strong>{{ r.tour.name }}</strong> ({{ r.status }})<br>
-        {{ r.tour.date.strftime('%B %d, %Y') }} - {{ r.tour.schools | join(', ') }}
-      </div>
+<h1 class="mb-4">Your Reservation History</h1>
+{% for r in history %}
+  <div class="card mb-2">
+    <div class="card-body">
+      <strong>{{ r.tour.name }}</strong> ({{ r.status }})<br>
+      {{ r.tour.date.strftime('%B %d, %Y') }} - {{ r.tour.schools | join(', ') }}
     </div>
-  {% else %}
-    <p>No reservations found.</p>
-  {% endfor %}
-</div>
+  </div>
+{% else %}
+  <p>No reservations found.</p>
+{% endfor %}
 {% endblock %}

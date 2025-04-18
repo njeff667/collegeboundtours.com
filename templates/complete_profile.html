@@ -1,25 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Complete Your Profile{% endblock %}
 {% block content %}
-<div class="container mt-5 main-content" style="max-width: 500px;">
-  <h4>Complete Your Profile</h4>
-  <form method="POST">
-    <div class="mb-3">
-      <label>Phone Number:</label>
-      <input type="text" name="phone" class="form-control">
-    </div>
-    <div class="mb-3">
-      <label>Your Role:</label>
-      <select name="role" class="form-select">
-        <option value="student">Student</option>
-        <option value="parent">Parent</option>
-      </select>
-    </div>
-    <div class="mb-3">
-      <label>School/Grade:</label>
-      <input type="text" name="school" class="form-control">
-    </div>
-    <button class="btn btn-success w-100">Save Profile</button>
-  </form>
-</div>
+<h1 class="mb-4">Complete Your Profile</h1>
+<form method="POST">
+  <div class="mb-3">
+    <label>Phone Number:</label>
+    <input type="text" name="phone" class="form-control">
+  </div>
+  <div class="mb-3">
+    <label>Your Role:</label>
+    <select name="role" class="form-select">
+      <option value="student">Student</option>
+      <option value="parent">Parent</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label>School/Grade:</label>
+    <input type="text" name="school" class="form-control">
+  </div>
+  <button class="btn btn-success w-100">Save Profile</button>
+</form>
 {% endblock %}

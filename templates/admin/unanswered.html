@@ -2,7 +2,6 @@
 {% block title %}Unanswered Questions{% endblock %}
 
 {% block content %}
-<div class="container py-4">
   <h2 class="mb-4">Unanswered GPT Questions</h2>
 
   {% if questions %}
@@ -25,5 +24,4 @@
   {% else %}
     <div class="alert alert-info">No unanswered questions logged yet.</div>
   {% endif %}
-</div>
 {% endblock %}

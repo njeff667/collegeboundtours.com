@@ -1,5 +1,6 @@
 # models/user.py
 from flask_login import UserMixin
+from datetime import datetime
 
 class User(UserMixin):
     def __init__(self, user_doc):
@@ -7,8 +8,10 @@ class User(UserMixin):
         self.email = user_doc.get("email")
         self.name = user_doc.get("name")
         self.role = user_doc.get("role", "student")
-        self.phone = user_doc.get("phone")
+        self.password = user_doc.get("password")
         self.profile_complete = user_doc.get("profile_complete", False)
+        self.profile = user_doc.get("profile", False)
+        self.datetime_created = datetime.now()
 
     def get_id(self):
         return self.id

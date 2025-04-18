@@ -1,6 +1,6 @@
 # Refactored college_bound/app.py
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
 import os
@@ -77,6 +77,8 @@ google_bp = make_google_blueprint(
 )
 app.register_blueprint(google_bp, url_prefix="/login")
 
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+
 # Facebook OAuth Blueprint
 facebook_bp = make_facebook_blueprint(
     client_id=os.getenv("FACEBOOK_OAUTH_CLIENT_ID"),
@@ -110,6 +112,19 @@ def contact_submit():
     })
     flash("Message sent.")
     return redirect(url_for("contact"))
+
+@app.context_processor
+def inject_cart_count():
+
+    if current_user.is_authenticated:
+        cart_count = db.cart.count_documents({
+            "user_id": current_user.id,
+            "status": "pending"  # Only show pending items
+        })
+    else:
+        cart_count = 0
+
+    return dict(cart_count=cart_count)
 
 if __name__ == "__main__":
     app.run(debug=True)

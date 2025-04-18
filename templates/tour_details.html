@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Tour Details{% endblock %}
+
+{% block content %}
+
+  <h1 class="mb-4">{{ template.title }}</h1>
+  <h2 class="mb-4">College Tour</h2>
+
+  <div class="card mb-4">
+    <div class="card-body">
+        <p><strong>Date:</strong> {{ tour.date if tour.date else "TBD" }}</p>
+        <p><strong>Status:</strong> {{ tour.status }}</p>
+        <p><strong>Capacity:</strong> {{ tour.registered }}/{{ tour.capacity }}</p>
+        {% if template.description %}
+        <p><strong>About this tour:</strong> {{ template.description }}</p>
+        {% endif %}
+        {% if template.duration_hours %}
+        <p><strong>Tour Duration (estimate):</strong> {{ template.duration_hours }} hours</p>
+        {% endif %}
+
+        {% if universities %}
+        <p><strong>Schools on this tour:</strong></p>
+        <ul>
+        {% for university in universities %}
+            {% if university %}
+            <li>
+                {{ university.name }}
+                {% if type %}
+                 [
+                {% for type in types %}
+                    {{ type }}
+                {% endfor %}
+                ]
+                {% endif %}
+                {% if university.visitor_center_address.city and university.visitor_center_address.state %}<br>{{ university.visitor_center_address.city }}, {{ university.visitor_center_address.state }}{% endif %}
+                {% if university.website %}<a href="{{ university.website }}"><br>Offical website</a>{% endif %}
+            </li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+        {% endif %}
+        {% if template.notes %}
+        <p><strong>Notes:</strong> {{ template.notes }}</p>
+        {% endif %}
+
+        <div class="mt-4">
+            <form method="POST" action="{{ url_for('tours.tour_checklist')}}">
+                <a href="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}" class="btn btn-primary">Reserve My Spot</a>
+                <button class="btn btn-primary" type="submit">Prepare Reservation</button>
+                <a href="{{ url_for('tours.tour_schedule') }}" class="btn btn-secondary">Back to Schedule</a>
+            </form>
+        </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

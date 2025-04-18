@@ -50,7 +50,10 @@ def signup():
         name = sanitize_input(request.form.get("name"))
         role = str(sanitize_input(request.form.get("role"))).lower()
 
-        if role != "student" or role != "parent":
+        if role == "student" or role == "parent":
+            print(f"{email} registered as a {role}.")
+        else:
+            print(f"{email} attempted to register as a {role}, but will now be registered as a student.")
             role = "student"
 
         # Example usage in your signup route:
@@ -69,6 +72,7 @@ def signup():
             "password": generate_password_hash(password),
             "role": role  # Default role
         }
+
         db.users.insert_one(user)
         flash("Account created. Please log in.")
         return redirect(url_for("auth.login"))
@@ -84,9 +88,44 @@ def logout():
 @auth_bp.route("/profile")
 @login_required
 def profile():
-    return render_template("auth/profile.html", user=current_user)
-
-print(f"current_user: {current_user}")
+    tour_id = None
+    if request.args.get("tour_id"):
+        print(f'request.args.get("tour_id"): {request.args.get("tour_id")}')
+        tour_id = sanitize_input(request.args.get("tour_id"))
+        print(f"tour_id: {tour_id}")
+        if request.method == "GET":
+            if current_user.role == "parent":
+                if tour_id:
+                    return redirect(url_for("parent.parent_profile", tour_id=tour_id))
+                else:
+                    return redirect(url_for("parent.parent_profile"))            
+            elif current_user.role == "student":
+                if tour_id:
+                    return redirect(url_for("student.student_profile", tour_id=tour_id))
+                else:
+                    return redirect(url_for("student.student_profile"))
+            elif current_user.role == "admin":
+                return redirect(url_for("admin.admin_profile"))
+            elif current_user.role == "operations":
+                return redirect(url_for("operations.operations_profile"))
+            else:
+                flash("There was an error redirecting to your profile. Please try again", "error")
+                return redirect(url_for("tours.tour_schedule"))
+        elif request.method == "POST":
+            """
+            ADD THE LOGIC FOR SAVING THE PROFILE
+            """
+            if tour_id:
+                return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
+            else:
+                if current_user.role == "parent":
+                    return redirect(url_for("parent.parent_profile"))            
+                elif current_user.role == "student":
+                    return redirect(url_for("student.student_profile"))
+                elif current_user.role == "admin":
+                    return redirect(url_for("admin.admin_profile"))
+                elif current_user.role == "operations":
+                    return redirect(url_for("operations.operations_profile"))
 
 @auth_bp.route("/reset-password", methods=["GET", "POST"])
 def reset_password_request():

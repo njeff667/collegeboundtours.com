@@ -1,0 +1,31 @@
+<!-- templates/student_id_approvals.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Student ID Approvals</h2>
+
+    {% for student in students %}
+        <div class="card my-3 p-3">
+            <h5>{{ student.name }} ({{ student.email }})</h5>
+
+            {% if student.student_id_file %}
+                {% if student.student_id_file.endswith('.pdf') %}
+                    <p><a href="{{ url_for('static', filename=student.student_id_file.split('static/')[-1]) }}" target="_blank">View Uploaded Student ID (PDF)</a></p>
+                {% else %}
+                    <img src="{{ url_for('static', filename=student.student_id_file.split('static/')[-1]) }}" alt="Student ID" class="img-fluid rounded" style="max-height: 300px;">
+                {% endif %}
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('admin.review_student_id', user_id=student.id) }}" class="mt-2">
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+            </form>
+
+            <form method="POST" action="{{ url_for('admin.review_student_id', user_id=student.id) }}" class="mt-2">
+                <input type="hidden" name="action" value="reject">
+                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+            </form>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

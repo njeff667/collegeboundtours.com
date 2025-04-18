@@ -1,0 +1,17 @@
+<!-- templates/consent_form.html -->
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 600px;">
+    <h2>Tour Consent Form</h2>
+    <p>Please review and sign the consent form for {{ student_name }} for the {{ tour_name }} tour.</p>
+
+    <form method="POST" action="{{ url_for('tours.sign_consent', student_id=student_id, tour_id=tour_id) }}">
+        <div class="mb-3">
+            <label for="signature" class="form-label">Type Your Full Name (Signature):</label>
+            <input type="text" name="signature" id="signature" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Sign Consent Form</button>
+    </form>
+</div>
+{% endblock %}

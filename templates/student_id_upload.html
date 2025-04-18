@@ -1,0 +1,31 @@
+<!-- templates/student_id_upload.html -->
+{% extends "base.html" %}
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <h2>Upload or View Your Student ID</h2>
+
+    {% if student_id_file %}
+        <div class="mb-4">
+            <h5>Current Student ID on File:</h5>
+            {% if student_id_file.endswith('.pdf') %}
+                <p><a href="{{ url_for('static', filename=student_id_file.split('static/')[-1]) }}" target="_blank">View Uploaded Student ID (PDF)</a></p>
+            {% else %}
+                <img src="{{ url_for('static', filename=student_id_file.split('static/')[-1]) }}" alt="Student ID" class="img-fluid rounded border" style="max-height: 400px;">
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">No Student ID uploaded yet.</div>
+    {% endif %}
+
+    <hr>
+
+    <form method="POST" action="{{ url_for('tours.upload_student_id') }}" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="student_id_file" class="form-label">Upload New Student ID:</label>
+            <input type="file" name="student_id_file" id="student_id_file" class="form-control" required accept="image/*,application/pdf">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Upload Student ID</button>
+    </form>
+</div>
+{% endblock %}

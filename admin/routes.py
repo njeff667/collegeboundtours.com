@@ -1,6 +1,6 @@
 # admin/routes.py
 from flask import Blueprint, jsonify, render_template, request, redirect, url_for, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
 from utils.security import role_required
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -11,6 +11,19 @@ from datetime import datetime, timedelta
 import os
 
 admin_bp = Blueprint("admin", __name__)
+
+@admin_bp.route('/admin/student_ids')
+@login_required
+def admin_student_ids():
+    if not current_user.is_admin():
+        flash("Access denied.")
+        return redirect(url_for('home'))
+
+    users = db.users.find({
+        "profile.student_id_file": {"$exists": True}
+    })
+
+    return render_template('admin_student_ids.html', users=users)
 
 @admin_bp.route("/dashboard")
 @login_required

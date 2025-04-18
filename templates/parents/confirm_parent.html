@@ -2,38 +2,36 @@
 {% block title %}Parent Consent Form{% endblock %}
 
 {% block content %}
-<div class="container py-5 main-content">
-  <h2 class="mb-4">Parent/Guardian Consent Form</h2>
+<h1 class="mb-4">Parent/Guardian Consent Form</h1>
 
-  <form method="POST" enctype="multipart/form-data">
-    <div class="mb-3">
-      <label for="parent_name" class="form-label">Your Full Name</label>
-      <input type="text" name="parent_name" class="form-control" required>
-    </div>
+<form method="POST" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label for="parent_name" class="form-label">Your Full Name</label>
+    <input type="text" name="parent_name" class="form-control" required>
+  </div>
 
-    <div class="mb-3">
-      <label for="parent_email" class="form-label">Email (pre-filled)</label>
-      <input type="email" class="form-control" value="{{ email }}" readonly>
-    </div>
+  <div class="mb-3">
+    <label for="parent_email" class="form-label">Email (pre-filled)</label>
+    <input type="email" class="form-control" value="{{ email }}" readonly>
+  </div>
 
-    <div class="mb-3">
-      <label for="parent_id" class="form-label">Upload Government-Issued ID (PDF or Image)</label>
-      <input type="file" name="parent_id" accept=".pdf,.jpg,.jpeg,.png" class="form-control" required>
-    </div>
+  <div class="mb-3">
+    <label for="parent_id" class="form-label">Upload Government-Issued ID (PDF or Image)</label>
+    <input type="file" name="parent_id" accept=".pdf,.jpg,.jpeg,.png" class="form-control" required>
+  </div>
 
-    <div class="form-check mb-3">
-      <input class="form-check-input" type="checkbox" name="legal_ack" value="1" id="legal_ack" required>
-      <label class="form-check-label" for="legal_ack">
-        I confirm that I am the legal parent or guardian of the participating student. I have read and agree to the Tour Conduct and Emergency Policy, including responsibility in case of medical or behavioral incidents.
-      </label>
-    </div>
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="legal_ack" value="1" id="legal_ack" required>
+    <label class="form-check-label" for="legal_ack">
+      I confirm that I am the legal parent or guardian of the participating student. I have read and agree to the Tour Conduct and Emergency Policy, including responsibility in case of medical or behavioral incidents.
+    </label>
+  </div>
 
-    <div class="mb-3">
-      <label for="signature" class="form-label">Type Your Full Name as Signature</label>
-      <input type="text" name="signature" class="form-control" required>
-    </div>
+  <div class="mb-3">
+    <label for="signature" class="form-label">Type Your Full Name as Signature</label>
+    <input type="text" name="signature" class="form-control" required>
+  </div>
 
-    <button type="submit" class="btn btn-primary">Submit Consent</button>
-  </form>
-</div>
+  <button type="submit" class="btn btn-primary">Submit Consent</button>
+</form>
 {% endblock %}
