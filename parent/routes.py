@@ -5,10 +5,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from extensions import db, mail, serializer
-from utils.security import role_required, validate_file, allowed_file, upload_to_gcs
+from utils.security import role_required, sanitize_input, validate_file, allowed_file, upload_to_gcs
 from werkzeug.utils import secure_filename
 import os
-import datetime
+from datetime import datetime
 
 parent_bp = Blueprint("parent", __name__)
 
@@ -79,3 +79,39 @@ def confirm_parent(token):
 
     return render_template("parent_confirm.html", email=email)
 
+@parent_bp.route("/profile", methods=["GET", "POST"])
+@login_required
+@role_required("parent")
+def parent_profile():
+    tour_id = None
+    if request.args.get("tour_id"):
+        tour_id = sanitize_input(request.args.get("tour_id"))
+        print(f"tour_id: {tour_id}")
+    if request.method == "POST":
+        student_data = {
+            "user_id": current_user.id,
+            "first_name": sanitize_input(request.form.get("first_name")),
+            "middle_name": sanitize_input(request.form.get("middle_name")),
+            "last_name": sanitize_input(request.form.get("last_name")),
+            "email": sanitize_input(request.form.get("email")),
+            "cell_phone": sanitize_input(request.form.get("cell_phone")),
+            "text_opt_in": sanitize_input(request.form.get("text_opt_in")),
+            "updated_at": datetime.utcnow()
+        }
+        
+        updated_profile = db.users.update_one(
+            {"_id": current_user.id},
+            {"$set": {"profile": student_data}},
+            upsert=True
+        )
+        print(updated_profile)
+
+        flash("Profile updated successfully.")
+        if tour_id:
+            return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
+    if current_user.profile:
+        #user = db.users.find_one({"_id": current_user.id, "profile": {"$exists": True}}) or {}
+        profile=current_user.profile
+    else:
+        profile = ""
+    return render_template("parent_profile.html", parent=profile, is_editable=False if profile else True)

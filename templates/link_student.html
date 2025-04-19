@@ -3,13 +3,13 @@
 <div class="container mt-5" style="max-width: 700px;">
     <h2>Link Students</h2>
 
-    <p>Enter the email addresses of your students. You can add multiple students before submitting.</p>
+    <p>Enter the email addresses of your students. You can add or remove students before submitting.</p>
 
     <form method="POST" action="{{ url_for('tours.link_student') }}">
         <div id="students-list">
-            <div class="mb-3 student-entry">
-                <label class="form-label">Student Email Address:</label>
-                <input type="email" name="student_email" class="form-control" required>
+            <div class="mb-3 student-entry input-group">
+                <input type="email" name="student_email" class="form-control" required placeholder="Student Email Address">
+                <button type="button" class="btn btn-danger btn-sm remove-student" onclick="removeStudentField(this)">Remove</button>
             </div>
         </div>
 
@@ -19,7 +19,7 @@
     </form>
 
     <div class="mt-4">
-        <a href="{{ url_for('parent.parent_dashboard') }}" class="btn btn-secondary">Back to Parent Dashboard</a>
+        <a href="{{ url_for('tours.tour_checklist') }}" class="btn btn-secondary">Continue with Reservation</a>
     </div>
 </div>
 
@@ -27,12 +27,17 @@
 function addStudentField() {
     var container = document.getElementById('students-list');
     var newField = document.createElement('div');
-    newField.classList.add('mb-3', 'student-entry');
+    newField.classList.add('mb-3', 'student-entry', 'input-group');
     newField.innerHTML = `
-        <label class="form-label">Student Email Address:</label>
-        <input type="email" name="student_email" class="form-control" required>
+        <input type="email" name="student_email" class="form-control" required placeholder="Student Email Address">
+        <button type="button" class="btn btn-danger btn-sm remove-student" onclick="removeStudentField(this)">Remove</button>
     `;
     container.appendChild(newField);
+}
+
+function removeStudentField(button) {
+    var entry = button.closest('.student-entry');
+    entry.remove();
 }
 </script>
 {% endblock %}

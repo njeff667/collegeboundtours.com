@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Parent Profile{% endblock %}
+{% block content %}
+<h1 class="mb-4">Parent Profile</h1>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="alert alert-info">
+      {% for message in messages %}
+        <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Profile Details</span>
+    {% if parent %}
+      <button class="btn btn-sm btn-outline-warning" onclick="toggleEdit(true)">Edit</button>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div id="view-profile" {% if not parent %}style="display: none;"{% endif %}>
+      {% if parent %}
+        <dl class="row">
+          <dt class="col-sm-4">Full Name</dt>
+          <dd class="col-sm-8">{{ parent.first_name }} {{ parent.middle_name }} {{ parent.last_name }}</dd>
+    
+          <dt class="col-sm-4">Email Address</dt>
+          <dd class="col-sm-8">{{ parent.email }}</dd>
+    
+          <dt class="col-sm-4">Cell Phone</dt>
+          <dd class="col-sm-8">{{ parent.cell_phone }}</dd>
+    
+          <dt class="col-sm-4">Text Opt In</dt>
+          <dd class="col-sm-8">{{ parent.text_opt_in }}</dd>
+        </dl>
+      {% endif %}
+    </div>
+    
+    <div id="edit-profile-form" {% if parent %}style="display: none;"{% endif %}>
+      <form method="POST" action="{{ url_for('parent.parent_profile') }}">
+        {% include 'parent_profile_form.html' %}
+        <button type="submit" class="btn btn-primary">Save Profile</button>
+        <button type="button" class="btn btn-secondary" onclick="toggleEdit(false)">Cancel</button>
+      </form>
+    </div>
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleEdit(showEdit) {
+  const view = document.getElementById("view-profile");
+  const form = document.getElementById("edit-profile-form");
+  if (showEdit) {
+    view.style.display = 'none';
+    form.style.display = 'block';
+  } else {
+    view.style.display = 'block';
+    form.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

@@ -111,7 +111,7 @@
                 <a class="dropdown-item" href="{% if current_user.role == 'admin' %}
                 {{ url_for('admin.admin_dashboard') }}"
                 {% elif current_user.role == 'parent' %}
-                {{ url_for('parent.parent_dashboard') }}
+                {{ url_for('parent.parent_profile') }}
                 {% elif current_user.role == 'student' %}
                 {{ url_for('student.student_profile') }}
                 {% elif current_user.role == 'driver' %}

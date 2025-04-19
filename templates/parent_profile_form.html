@@ -1,0 +1,32 @@
+<div class="row">
+  <div class="col-md-4">
+    <label>First Name:</label>
+    <input type="text" name="first_name" class="form-control" value="{{ parent.get('first_name', '') if parent else '' }}" required>
+  </div>
+  <div class="col-md-4">
+    <label>Middle Name:</label>
+    <input type="text" name="middle_name" class="form-control" value="{{ parent.get('middle_name', '') if parent else '' }}">
+  </div>
+  <div class="col-md-4">
+    <label>Last Name:</label>
+    <input type="text" name="last_name" class="form-control" value="{{ parent.get('last_name', '') if parent else '' }}" required>
+  </div>
+</div>
+  
+<div class="mb-3 mt-3">
+  <label>Email Address:</label>
+  <input type="email" name="email" class="form-control" value="{{ parent.get('email', '') if parent else '' }}" required>
+</div>
+
+<div class="mb-3">
+  <label>Cell Phone Number:</label>
+  <input type="text" name="cell_phone" class="form-control" value="{{ parent.get('cell_phone', '') if parent else '' }}">
+</div>
+
+<div class="mb-3">
+  <label>Text Opt In:</label>
+  <select name="text_opt_in" class="form-select">
+    <option value="No" {% if parent and parent.get('text_opt_in') == 'No' %}selected{% endif %}>No</option>
+    <option value="Yes" {% if parent and parent.get('text_opt_in') == 'Yes' %}selected{% endif %}>Yes</option>
+  </select>
+</div>

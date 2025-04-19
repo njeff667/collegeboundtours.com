@@ -50,7 +50,7 @@ def build_approval_email(student_name, approve_link):
     </html>
     """
 
-def build_invitation_email(student_name, invite_link):
+def build_parent_invitation_email(student_name, invite_link):
     return f"""
     <html>
       <body>
@@ -60,6 +60,41 @@ def build_invitation_email(student_name, invite_link):
         <p>Please click the link below to create your parent account and approve the connection:</p>
         <p><a href="{invite_link}">Create Parent Account</a></p>
         <p>If you did not expect this email, you may safely ignore it.</p>
+      </body>
+    </html>
+    """
+
+def build_student_invitation_email(parent_name, invite_link):
+    """
+    Build the HTML email body to invite a student to create an account.
+
+    Args:
+        parent_name (str): Name of the parent who initiated the invite.
+        invite_link (str): Link for the student to create an account.
+
+    Returns:
+        str: HTML content of the email.
+    """
+    return f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #004085;">You're Invited to Join College Bound Tours!</h2>
+        <p>Hello,</p>
+
+        <p><strong>{parent_name}</strong> has requested to link your account as their student on College Bound Tours.</p>
+
+        <p>Please click the button below to create your student account and approve the connection:</p>
+
+        <p style="text-align: center; margin: 20px 0;">
+          <a href="{invite_link}" style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+            Create Student Account
+          </a>
+        </p>
+
+        <p>If you were not expecting this email, you can safely ignore it.</p>
+
+        <hr>
+        <small>This invitation will expire after 24 hours for security purposes.</small>
       </body>
     </html>
     """
@@ -126,6 +161,10 @@ def get_tour_name(tour_id):
     return tour.get("name", "Unknown Tour")
 
 def handle_parent_checklist(user):
+    if not isinstance(user.profile, dict):
+        flash("Please fill complete your profile before reserving.", "error")
+        return redirect(url_for("auth.profile"))
+    
     linked_students = link_students(user.id)
     if not linked_students:
         flash("You must link a student to your account before proceeding.")
@@ -192,6 +231,36 @@ def handle_student_checklist(user):
     flash("Reservation added to cart successfully.")
     return redirect(url_for('tours.cart'))
 
+def has_recent_background_check(user_id, within_days=180):
+    """
+    Check if the user has a valid background check within the required number of days.
+
+    Args:
+        user_id (str): The user's ID.
+        within_days (int): How recent the background check must be.
+
+    Returns:
+        bool: True if background check is recent, False otherwise.
+    """
+    record = db.background_checks.find_one({
+        "user_id": user_id,
+        "status": "approved"  # only count approved checks
+    })
+
+    if not record:
+        return False
+
+    background_date = record.get("completed_at")
+    if not background_date:
+        return False
+
+    if isinstance(background_date, str):
+        background_date = datetime.strptime(background_date, "%Y-%m-%d")
+
+    cutoff_date = datetime.utcnow() - timedelta(days=within_days)
+
+    return background_date >= cutoff_date
+
 def has_linked_parent(student_user_id):
     """
     Check if a student has a linked parent account.
@@ -207,6 +276,35 @@ def has_linked_parent(student_user_id):
     })
 
     return link_record is not None
+
+def has_valid_photo_id(user_id):
+    """
+    Check if a user (typically a parent) has a valid photo ID uploaded.
+
+    Args:
+        user_id (str): ID of the user.
+
+    Returns:
+        bool: True if a valid photo ID file exists, False otherwise.
+    """
+    user = db.users.find_one({"_id": user_id})
+
+    if not user:
+        return False
+
+    profile = user.get("profile", {})
+    photo_id_file = profile.get("photo_id_file")
+
+    if not photo_id_file:
+        return False
+
+    # (Optional but recommended) Check if the file physically exists on disk
+    import os
+    file_path = os.path.join("static/uploads/photo_ids", photo_id_file)  # Adjust your uploads path!
+    if not os.path.exists(file_path):
+        return False
+
+    return True
 
 def has_signed_code_of_conduct(user_id, within_days=365):
     """
@@ -426,6 +524,110 @@ def delete_student_id():
     flash('Student ID deleted successfully. You may upload a new one.')
     return redirect(url_for('tours.upload_student_id'))
 
+@tours_bp.route('/link_parent', methods=['GET', 'POST'])
+@login_required
+def link_parent():
+    from your_database_setup import db
+    from bson import ObjectId
+
+    if not current_user.is_student():
+        flash("Only students can link parents.", "warning")
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        parent_email = request.form.get('parent_email')
+
+        if not parent_email:
+            flash("Please provide your parent's email address.", "warning")
+            return redirect(request.url)
+
+        parent_email = parent_email.lower().strip()
+
+        # Block if email belongs to another student
+        existing_student = db.users.find_one({
+            "email": parent_email,
+            "role": "student"
+        })
+
+        if existing_student:
+            flash("That email belongs to a student account, not a parent.", "danger")
+            return redirect(request.url)
+
+        parent_user = db.users.find_one({
+            "email": parent_email,
+            "role": "parent"
+        })
+
+        if parent_user:
+            # Parent exists, send approval email
+            token = serializer.dumps({
+                "student_id": current_user.id,
+                "parent_id": str(parent_user["_id"]),
+                "parent_email": parent_email
+            }, salt="link-parent")
+
+            approve_link = url_for('tours.approve_parent_link', token=token, _external=True)
+
+            send_email(
+                to_email=parent_email,
+                subject="Approve Student Link Request",
+                body=build_approval_email(current_user.name, approve_link)
+            )
+
+            # Record pending link immediately
+            db.student_parent_links.update_one(
+                {"student_id": current_user.id},
+                {
+                    "$set": {
+                        "student_id": current_user.id,
+                        "parent_id": str(parent_user["_id"]),
+                        "parent_email": parent_email,
+                        "linked_date": datetime.utcnow(),
+                        "status": "pending"  # <<< KEY PART
+                    }
+                },
+                upsert=True
+            )
+
+            flash("An email has been sent to your parent for approval. You can continue your registration while approval is pending.", "success")
+        
+        else:
+            # Parent doesn't exist, send invite email
+            token = serializer.dumps({
+                "student_id": current_user.id,
+                "parent_email": parent_email
+            }, salt="invite-parent")
+
+            invite_link = url_for('auth.signup', email=parent_email, invite_token=token, _external=True)
+
+            send_email(
+                to_email=parent_email,
+                subject="Invitation to Join College Bound Tours",
+                body=build_parent_invitation_email(current_user.name, invite_link)
+            )
+
+            # Record pending link immediately (no parent_id yet)
+            db.student_parent_links.update_one(
+                {"student_id": current_user.id},
+                {
+                    "$set": {
+                        "student_id": current_user.id,
+                        "parent_id": None,
+                        "parent_email": parent_email,
+                        "linked_date": datetime.utcnow(),
+                        "status": "pending"  # <<< KEY PART
+                    }
+                },
+                upsert=True
+            )
+
+            flash("An invitation email has been sent to your parent. You can continue your registration while approval is pending.", "success")
+
+        # 🚀 Allow student to continue after sending
+        return redirect(url_for('tours.tour_checklist'))
+
+    return render_template('link_parent.html')
+
 @tours_bp.route('/link_student', methods=['GET', 'POST'])
 @login_required
 def link_student():
@@ -434,7 +636,6 @@ def link_student():
     If student does not exist, send an invitation email to create account.
     Block parent accounts from being linked as students.
     """
-    from your_database_setup import db
     from bson import ObjectId
 
     if not current_user.is_parent():
@@ -504,7 +705,7 @@ def link_student():
                 send_email(
                     to_email=email,
                     subject="Invitation to Join College Bound Tours",
-                    body=build_student_invitation_email(current_user.name, invite_link)
+                    body=build_parent_invitation_email(current_user.name, invite_link)
                 )
 
                 # Save pending link
