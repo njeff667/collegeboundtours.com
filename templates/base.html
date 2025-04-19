@@ -74,7 +74,7 @@
 
         <div class="d-flex">
           {% if current_user.is_authenticated %}
-            <a href="{{ url_for('tours.cart') }}" class="btn btn-outline-primary position-relative">
+            <a href="{{ url_for('tours.cart') }}" class="btn btn-outline-primary position-relative" style="font-size: 1.5rem; margin: auto">
               🛒
               {% if cart_count > 0 %}
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">

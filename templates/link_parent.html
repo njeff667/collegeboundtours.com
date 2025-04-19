@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <h2>Link Your Parent</h2>
+
+    <p>
+        Please enter your parent's email address below. 
+        If they already have an account, they will be sent an email to approve the link.
+        If they do not have an account, they will be invited by email to create one and approve the link request.
+    </p>
+
+    <form method="POST" action="{{ url_for('tours.link_parent') }}">
+        <div class="mb-3">
+            <label for="parent_email" class="form-label">Parent's Email Address:</label>
+            <input type="email" name="parent_email" id="parent_email" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Link Parent</button>
+    </form>
+
+    <a href="{{ url_for('tours.tour_checklist') }}" class="btn btn-secondary mt-3">Back to Checklist</a>
+</div>
+{% endblock %}

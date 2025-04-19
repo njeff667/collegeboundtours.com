@@ -5,10 +5,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from student.routes import generate_parent_token, send_parent_consent_email
 from extensions import db, mail, serializer
-from utils.security import sanitize_input
+from utils.security import role_required, validate_file, allowed_file, upload_to_gcs, sanitize_input
 from werkzeug.utils import secure_filename
 import os, socket
-
 
 tours_bp = Blueprint("tours", __name__)
 
@@ -37,8 +36,33 @@ def add_reservation_to_cart(user_id, student_id):
 
     db.cart.insert_one(cart_item)
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def build_approval_email(student_name, approve_link):
+    return f"""
+    <html>
+      <body>
+        <h2>Approve Link Request from {student_name}</h2>
+        <p>Hello,</p>
+        <p>{student_name} has requested to link your account as their parent or guardian.</p>
+        <p>Please click the link below to approve the connection:</p>
+        <p><a href="{approve_link}">Approve Student Link</a></p>
+        <p>If you do not recognize this request, please ignore this email.</p>
+      </body>
+    </html>
+    """
+
+def build_invitation_email(student_name, invite_link):
+    return f"""
+    <html>
+      <body>
+        <h2>You're Invited to Join College Bound Tours!</h2>
+        <p>Hello,</p>
+        <p>{student_name} has requested to link your account as their parent or guardian.</p>
+        <p>Please click the link below to create your parent account and approve the connection:</p>
+        <p><a href="{invite_link}">Create Parent Account</a></p>
+        <p>If you did not expect this email, you may safely ignore it.</p>
+      </body>
+    </html>
+    """
 
 def calculate_age(birthdate):
     if not birthdate:
@@ -56,33 +80,6 @@ def calculate_age(birthdate):
         age -= 1
     return age
 
-@tours_bp.route('/code_of_conduct', methods=['GET', 'POST'])
-@login_required
-def sign_code_of_conduct():
-    if request.method == 'POST':
-        agree = request.form.get('agree')
-        signature = request.form.get('signature')
-
-        if not agree:
-            flash("You must agree to the Code of Conduct before signing.")
-            return redirect(request.url)
-        if not signature:
-            flash("Signature is required.")
-            return redirect(request.url)
-
-        # Save Code of Conduct signature to database
-        db.code_of_conducts.insert_one({
-            "user_id": current_user.id,
-            "signed_date": datetime.utcnow(),
-            "signature_text": signature,
-            "ip_address": request.remote_addr or socket.gethostbyname(socket.gethostname())
-        })
-
-        flash("Code of Conduct signed successfully.")
-        return redirect(url_for('tours.tour_checklist'))
-
-    return render_template('code_of_conduct.html')
-
 def get_code_of_conduct_record(user_id):
     """
     Retrieve the Code of Conduct document for a user from the database.
@@ -95,6 +92,24 @@ def get_code_of_conduct_record(user_id):
     """
     # Example if using MongoDB
     return db.code_of_conducts.find_one({"user_id": user_id})
+
+def get_linked_parent(student_user_id):
+    """
+    Retrieve the linked parent's ID for a student.
+
+    Args:
+        student_user_id (str): The ID of the student.
+
+    Returns:
+        str or None: Parent ID if linked, None otherwise.
+    """
+    link_record = db.student_parent_links.find_one({
+        "student_id": student_user_id
+    })
+
+    if link_record:
+        return link_record.get("parent_id")
+    return None
 
 def get_student_name(student_id):
     """
@@ -111,7 +126,7 @@ def get_tour_name(tour_id):
     return tour.get("name", "Unknown Tour")
 
 def handle_parent_checklist(user):
-    linked_students = get_linked_students(user.id)
+    linked_students = link_students(user.id)
     if not linked_students:
         flash("You must link a student to your account before proceeding.")
         return redirect(url_for('tours.link_student'))
@@ -142,7 +157,11 @@ def handle_parent_checklist(user):
     return redirect(url_for('tours.cart'))
 
 def handle_student_checklist(user):
-    age = calculate_age(user.profile.get("birthdate"))
+    if isinstance(user.profile, dict) and user.profile.get("birthdate"):
+        age = calculate_age(user.profile.get("birthdate"))
+    else:
+        flash("Please fill complete your profile before reserving.", "error")
+        return redirect(url_for("auth.profile"))
 
     if age is None:
         flash("Birthdate is missing from your profile. Please complete your profile first.")
@@ -172,6 +191,22 @@ def handle_student_checklist(user):
     add_reservation_to_cart(user.id, user.id)
     flash("Reservation added to cart successfully.")
     return redirect(url_for('tours.cart'))
+
+def has_linked_parent(student_user_id):
+    """
+    Check if a student has a linked parent account.
+
+    Args:
+        student_user_id (str): The ID of the student.
+
+    Returns:
+        bool: True if a linked parent exists, False otherwise.
+    """
+    link_record = db.student_parent_links.find_one({
+        "student_id": student_user_id
+    })
+
+    return link_record is not None
 
 def has_signed_code_of_conduct(user_id, within_days=365):
     """
@@ -262,11 +297,95 @@ def has_valid_student_id(user_id):
     # If all checks passed
     return True
 
+def link_students(parent_id, include_pending=False):
+    """
+    Get all students linked to a parent account.
+
+    Args:
+        parent_id (str): The ID of the parent user.
+        include_pending (bool): If True, include pending links too.
+
+    Returns:
+        list of dicts: List of student records.
+    """
+    query = {
+        "parent_id": parent_id
+    }
+
+    if not include_pending:
+        query["status"] = "approved"
+
+    link_records = list(db.student_parent_links.find(query))
+
+    # Now fetch actual student info
+    students = []
+    for link in link_records:
+        student_id = link.get("student_id")
+        if student_id:
+            student = db.users.find_one({
+                "_id": student_id,
+                "role": "student"
+            })
+            if student:
+                students.append({
+                    "student_id": student.get("_id"),
+                    "student_name": student.get("name", "Unknown Student"),
+                    "link_status": link.get("status", "unknown"),
+                    "linked_date": link.get("linked_date")
+                })
+
+    return students
+
 def save_consent_form(data):
     """
     Save consent form data to database.
     """
     db.consent_forms.insert_one(data)
+
+def send_email(to_email, subject, body):
+    """
+    Send an email.
+
+    Args:
+        to_email (str): Recipient email address
+        subject (str): Email subject
+        body (str): Email body text
+    """
+    # You can implement using Flask-Mail, SendGrid, SMTP, etc.
+    print(f"Sending email to {to_email}")
+    print(f"Subject: {subject}")
+    print(f"Body: {body}")
+
+@tours_bp.route('/approve_parent_link/<token>')
+def approve_parent_link(token):
+    try:
+        data = serializer.loads(token, salt="link-parent", max_age=86400)  # token expires after 24 hrs
+        student_id = data["student_id"]
+        parent_id = data["parent_id"]
+
+        # Check if already linked
+        existing_link = db.student_parent_links.find_one({
+            "student_id": student_id,
+            "parent_id": parent_id
+        })
+
+        if existing_link:
+            flash("You are already linked to this student.", "info")
+            return redirect(url_for('auth.login'))  # or parent dashboard
+
+        # Save the new link
+        db.student_parent_links.insert_one({
+            "student_id": student_id,
+            "parent_id": parent_id,
+            "linked_date": datetime.utcnow()
+        })
+
+        flash("You have successfully linked to your student.", "success")
+        return redirect(url_for('auth.login'))  # or parent dashboard
+
+    except Exception as e:
+        flash("Invalid or expired link. Please request a new invitation.", "danger")
+        return redirect(url_for('auth.login'))
 
 @tours_bp.route('/cart')
 @login_required
@@ -288,6 +407,7 @@ def cart():
 
 @tours_bp.route('/delete_student_id', methods=['POST'])
 @login_required
+@role_required('student')
 def delete_student_id():
     # Fetch student ID file path
     user = db.users.find_one({"_id": current_user.id})
@@ -305,6 +425,96 @@ def delete_student_id():
 
     flash('Student ID deleted successfully. You may upload a new one.')
     return redirect(url_for('tours.upload_student_id'))
+
+@tours_bp.route('/link_student', methods=['GET', 'POST'])
+@login_required
+def link_student():
+    """
+    Allow a parent to link multiple students to their account.
+    If student does not exist, send an invitation email to create account.
+    """
+    from your_database_setup import db
+    from bson import ObjectId
+
+    if not current_user.is_parent():
+        flash("Only parents can link students.", "warning")
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        student_emails = request.form.getlist('student_email')
+
+        if not student_emails:
+            flash("Please enter at least one student's email address.", "warning")
+            return redirect(request.url)
+
+        linked_students = []
+        errors = []
+
+        for email in student_emails:
+            email = email.strip().lower()
+            if not email:
+                continue
+
+            student_user = db.users.find_one({
+                "email": email,
+                "role": "student"
+            })
+
+            if student_user:
+                # Student found
+                existing_link = db.student_parent_links.find_one({
+                    "student_id": str(student_user["_id"]),
+                    "parent_id": current_user.id
+                })
+
+                if existing_link:
+                    errors.append(f"Already linked to {student_user.get('name', email)}")
+                    continue
+
+                # Create link immediately
+                db.student_parent_links.insert_one({
+                    "student_id": str(student_user["_id"]),
+                    "parent_id": str(current_user.id),
+                    "linked_date": datetime.utcnow(),
+                    "status": "pending"
+                })
+
+                linked_students.append(student_user.get('name', email))
+            else:
+                # Student not found: send invitation
+                token = serializer.dumps({
+                    "parent_id": current_user.id,
+                    "student_email": email
+                }, salt="invite-student")
+
+                invite_link = url_for('auth.signup', email=email, invite_token=token, _external=True)
+
+                send_email(
+                    to_email=email,
+                    subject="Invitation to Join College Bound Tours",
+                    body=build_student_invitation_email(current_user.name, invite_link)
+                )
+
+                # Record a pending link even if student hasn't registered yet
+                db.student_parent_links.insert_one({
+                    "student_id": None,
+                    "parent_id": str(current_user.id),
+                    "parent_email": email,
+                    "linked_date": datetime.utcnow(),
+                    "status": "pending"
+                })
+
+                linked_students.append(f"Invitation sent to {email}")
+
+        if linked_students:
+            flash(f"Successfully processed: {', '.join(linked_students)}", "success")
+        if errors:
+            for error in errors:
+                flash(error, "danger")
+
+        return redirect(url_for('tours.link_student'))
+
+    return render_template('link_student.html')
 
 # Tour Schedule View
 @tours_bp.route("/schedule")
@@ -503,17 +713,11 @@ def choose_alternatives(tour_id):
     }).sort("date", 1)
     return render_template("choose_alternatives.html", tour_id=tour_id, alternatives=available)
 
-import os
-from flask import request, redirect, url_for, flash, render_template
-from werkzeug.utils import secure_filename
-from flask_login import login_required, current_user
-from datetime import datetime
-
 UPLOAD_FOLDER = "static/uploads/student_ids"  # adjust path!
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 @tours_bp.route('/upload_student_id', methods=['GET', 'POST'])
 @login_required
+@role_required("student")
 def upload_student_id():
     if request.method == 'POST':
         file = request.files.get('student_id_file')
@@ -558,7 +762,6 @@ def checkout():
     """
     Display the checkout page and process finalizing cart items.
     """
-    from your_database_setup import db  # adjust based on your setup
 
     if request.method == 'POST':
         # User clicked "Confirm and Submit"
@@ -608,7 +811,6 @@ def remove_from_cart(cart_id):
     Returns:
         Redirects back to the cart page with a flash message.
     """
-    from your_database_setup import db  # Adjust based on your app structure
 
     try:
         db.cart.delete_one({
@@ -622,6 +824,32 @@ def remove_from_cart(cart_id):
 
     return redirect(url_for('tours.cart'))
 
+@tours_bp.route('/code_of_conduct', methods=['GET', 'POST'])
+@login_required
+def sign_code_of_conduct():
+    if request.method == 'POST':
+        agree = request.form.get('agree')
+        signature = request.form.get('signature')
+
+        if not agree:
+            flash("You must agree to the Code of Conduct before signing.")
+            return redirect(request.url)
+        if not signature:
+            flash("Signature is required.")
+            return redirect(request.url)
+
+        # Save Code of Conduct signature to database
+        db.code_of_conducts.insert_one({
+            "user_id": current_user.id,
+            "signed_date": datetime.utcnow(),
+            "signature_text": signature,
+            "ip_address": request.remote_addr or socket.gethostbyname(socket.gethostname())
+        })
+
+        flash("Code of Conduct signed successfully.")
+        return redirect(url_for('tours.tour_checklist'))
+
+    return render_template('code_of_conduct.html')
 """[
   {
     "Task": "Account Creation",

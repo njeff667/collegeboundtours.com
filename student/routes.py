@@ -99,6 +99,9 @@ def student_profile():
         flash("Profile updated successfully.")
         if tour_id:
             return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
-    user = db.users.find_one({"_id": current_user.id, "profile": {"$exists": True}}) or {}
-    profile=user["profile"]
+    if current_user.profile:
+        #user = db.users.find_one({"_id": current_user.id, "profile": {"$exists": True}}) or {}
+        profile=current_user["profile"]
+    else:
+        profile = ""
     return render_template("student_profile.html", student=profile, is_editable=False if profile else True)

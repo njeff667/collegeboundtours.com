@@ -93,39 +93,39 @@ def profile():
         print(f'request.args.get("tour_id"): {request.args.get("tour_id")}')
         tour_id = sanitize_input(request.args.get("tour_id"))
         print(f"tour_id: {tour_id}")
-        if request.method == "GET":
+    if request.method == "GET":
+        if current_user.role == "parent":
+            if tour_id:
+                return redirect(url_for("parent.parent_profile", tour_id=tour_id))
+            else:
+                return redirect(url_for("parent.parent_profile"))            
+        elif current_user.role == "student":
+            if tour_id:
+                return redirect(url_for("student.student_profile", tour_id=tour_id))
+            else:
+                return redirect(url_for("student.student_profile"))
+        elif current_user.role == "admin":
+            return redirect(url_for("admin.admin_profile"))
+        elif current_user.role == "operations":
+            return redirect(url_for("operations.operations_profile"))
+        else:
+            flash("There was an error redirecting to your profile. Please try again", "error")
+            return redirect(url_for("tours.tour_schedule"))
+    elif request.method == "POST":
+        """
+        ADD THE LOGIC FOR SAVING THE PROFILE
+        """
+        if tour_id:
+            return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
+        else:
             if current_user.role == "parent":
-                if tour_id:
-                    return redirect(url_for("parent.parent_profile", tour_id=tour_id))
-                else:
-                    return redirect(url_for("parent.parent_profile"))            
+                return redirect(url_for("parent.parent_profile"))            
             elif current_user.role == "student":
-                if tour_id:
-                    return redirect(url_for("student.student_profile", tour_id=tour_id))
-                else:
-                    return redirect(url_for("student.student_profile"))
+                return redirect(url_for("student.student_profile"))
             elif current_user.role == "admin":
                 return redirect(url_for("admin.admin_profile"))
             elif current_user.role == "operations":
                 return redirect(url_for("operations.operations_profile"))
-            else:
-                flash("There was an error redirecting to your profile. Please try again", "error")
-                return redirect(url_for("tours.tour_schedule"))
-        elif request.method == "POST":
-            """
-            ADD THE LOGIC FOR SAVING THE PROFILE
-            """
-            if tour_id:
-                return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
-            else:
-                if current_user.role == "parent":
-                    return redirect(url_for("parent.parent_profile"))            
-                elif current_user.role == "student":
-                    return redirect(url_for("student.student_profile"))
-                elif current_user.role == "admin":
-                    return redirect(url_for("admin.admin_profile"))
-                elif current_user.role == "operations":
-                    return redirect(url_for("operations.operations_profile"))
 
 @auth_bp.route("/reset-password", methods=["GET", "POST"])
 def reset_password_request():
