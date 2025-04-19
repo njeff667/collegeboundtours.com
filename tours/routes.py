@@ -432,6 +432,7 @@ def link_student():
     """
     Allow a parent to link multiple students to their account.
     If student does not exist, send an invitation email to create account.
+    Block parent accounts from being linked as students.
     """
     from your_database_setup import db
     from bson import ObjectId
@@ -455,6 +456,17 @@ def link_student():
             if not email:
                 continue
 
+            # 🔥 FIRST: Block if email belongs to a Parent account
+            existing_parent = db.users.find_one({
+                "email": email,
+                "role": "parent"
+            })
+
+            if existing_parent:
+                errors.append(f"The email {email} belongs to a parent account, not a student.")
+                continue
+
+            # Then continue normal student checking
             student_user = db.users.find_one({
                 "email": email,
                 "role": "student"
@@ -495,7 +507,7 @@ def link_student():
                     body=build_student_invitation_email(current_user.name, invite_link)
                 )
 
-                # Record a pending link even if student hasn't registered yet
+                # Save pending link
                 db.student_parent_links.insert_one({
                     "student_id": None,
                     "parent_id": str(current_user.id),
