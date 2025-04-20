@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}400 - Bad Request{% endblock %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <h1 class="display-4 text-danger">400 Bad Request</h1>
+    <p class="lead">Sorry, something went wrong with your request.</p>
+
+    {% if error_description %}
+        {% set friendly_message = None %}
+
+        {# Match specific known issues #}
+        {% if "CSRF token missing" in error_description %}
+            {% set friendly_message = "Your session may have expired. Please refresh the page and try again." %}
+        {% elif "The browser (or proxy) sent a request that this server could not understand" in error_description %}
+            {% set friendly_message = "The page you tried to access had a problem. Please double-check your URL or form submission." %}
+        {% elif "Invalid form submission" in error_description %}
+            {% set friendly_message = "There was a problem with your form. Please check your entries and try again." %}
+        {% endif %}
+
+        {# Display either a friendly known message, or fallback to catch-all #}
+        <div class="alert alert-warning mt-4">
+            {{ friendly_message if friendly_message else "An unexpected error occurred. Please try again or contact support if the issue persists." }}
+        </div>
+
+    {% else %}
+        <div class="alert alert-warning mt-4">
+            An unexpected error occurred. Please try again later.
+        </div>
+    {% endif %}
+
+    <a href="{{ url_for('home') }}" class="btn btn-primary mt-3">Return Home</a>
+</div>
+{% endblock %}

@@ -45,7 +45,7 @@
         {% endif %}
 
         <div class="mt-4">
-            <form method="POST" action="{{ url_for('tours.tour_checklist')}}">
+            <form method="GET" action="{{ url_for('tours.tour_checklist', tour_id=tour_id)}}">
                 <a href="{{ url_for('tours.reserve_tour', tour_id=tour._id) }}" class="btn btn-primary">Reserve My Spot</a>
                 <button class="btn btn-primary" type="submit">Prepare Reservation</button>
                 <a href="{{ url_for('tours.tour_schedule') }}" class="btn btn-secondary">Back to Schedule</a>

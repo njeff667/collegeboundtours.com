@@ -1,127 +1,109 @@
-    <div class="row">
-        <div class="list-group col-md-3">
-            <a href="#" class="list-group-item list-group-item-action flex-column align-items-start active">
-              <div class="d-flex w-100 justify-content-between">
-                <h5 class="mb-1">List group item heading</h5>
-                <small>3 days ago</small>
-              </div>
-              <p class="mb-1">Donec id elit non mi porta gravida at eget metus. Maecenas sed diam eget risus varius blandit.</p>
-              <small>Donec id elit non mi porta.</small>
-            </a>
-        </div>
-
-        <div class="list-group col-md-3">
-            <a href="#" class="list-group-item list-group-item-action flex-column align-items-start active">
-              <div class="d-flex w-100 justify-content-between">
-                <h5 class="mb-1">List group item heading</h5>
-                <small>3 days ago</small>
-              </div>
-              <p class="mb-1">Donec id elit non mi porta gravida at eget metus. Maecenas sed diam eget risus varius blandit.</p>
-              <small>Donec id elit non mi porta.</small>
-            </a>
-        </div>
-
-        <div class="list-group col-md-3">
-            <a href="#" class="list-group-item list-group-item-action flex-column align-items-start active">
-              <div class="d-flex w-100 justify-content-between">
-                <h5 class="mb-1">List group item heading</h5>
-                <small>3 days ago</small>
-              </div>
-              <p class="mb-1">Donec id elit non mi porta gravida at eget metus. Maecenas sed diam eget risus varius blandit.</p>
-              <small>Donec id elit non mi porta.</small>
-            </a>
-        </div>
-          
-    <a href="">
-        <div class="col-md-4">
-            <div class="card text-white bg-primary mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Account Creation</h5>
-                <p class="card-text display-6">Placeholder...</p>
-            </div>
-            </div>
-        </div>
-    </a>
-
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Profile Completion</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
+<div class="col-md-4">
+    <div class="card text-white bg-{% if dashboard.profile_created == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Profile Completion</h5>
+        <p class="card-text">
+          * Status: Not Started, Incomplete, Complete<br>
+          * This is a general status. <br>
+          * User collection - If current_user.profile
+        </p>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Account Link to Parent</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Account Link to Student</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Valid Consent Form</h5>
+        <p class="card-text md-1">
+          * Status: no valid on file or valid on file<br>
+          * This is a reservation specific status. <br>
+          * Valid when signed by parent/guardian within 60 days.<br> 
+          * From the consent_form colleciton.<br>
+          * if db.consent_form.find_one("user_id": current_user.get(id))
+        </p>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Reserved Tour Date</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Parental Consent</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
+  </div>  
+  
+  <div class="col-md-4">
+    <div class="card text-white bg-{% if dashboard.signed_code_of_conduct == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Valid Code of Conduct</h5>
+        <p class="card-text md-1">
+          * This will be signed by both the parents and child
+          * if db.code_of_conducts.find_one("user_id": current_user.get(id)) <br>
+          * date needs to be added and consent form needs to be signed less than 180 days
+        </p>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Verify Parent ID/Background Check</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Criminal Background Check (if parent travels)</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
+  </div>
+            
+  <div class="col-md-4">
+    <div class="card text-white bg-{% if dashboard.linked_accounts == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Linked Accounts between Parents/Guardians and Students under 18 years old</h5>
+        <p class="card-text md-1">Placeholder...</p>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Verify Student ID</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3">
-        <div class="card-body">
-            <h5 class="card-title">Verify Itinerary</h5>
-            <p class="card-text display-6">Placeholder...</p>
-        </div>
-        </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Reserved Tour Date</h5>
+        <p class="card-text md-1">Placeholder...</p>
     </div>
-</div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card text-white bg-{% if dashboard.parent_photo_uploaded == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Verify Parent/Guardian ID</h5>
+        <p class="card-text md-1">
+          * if db.consent_form.find_one("user_id": current_user.get(id))
+          * add the expiration date
+          * it can be pending, accepted, denied  
+        </p>
+    </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card text-white bg-{% if dashboard.student_photo_uploaded == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Verify Student ID</h5>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Background Check</h5>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Criminal Background Check (if parent travels)</h5>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Verify Itinerary</h5>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+    </div>
+  </div>
+  </div>
+  

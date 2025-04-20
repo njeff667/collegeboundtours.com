@@ -3,10 +3,7 @@
 {% block content %}
 <h1 class="mb-4">Student Dashboard</h1>
 <p>View upcoming college tours and confirmations.</p>
-<ul>
-  {% for reservation in reservations %}]
-  {{ reservation }}
-  {% endfor %}
-</ul>
-{% include "dashboards/tour_dashboard_insert.html" %}
+<div class="row">
+  {% include "dashboards/dashboard_insert.html" %}
+</div>
 {% endblock %}

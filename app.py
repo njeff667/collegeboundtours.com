@@ -87,6 +87,22 @@ facebook_bp = make_facebook_blueprint(
 )
 app.register_blueprint(facebook_bp, url_prefix="/login")
 
+@app.errorhandler(400)
+def bad_request_error(error):
+    """
+    Handle 400 Bad Request errors with specific messages if possible.
+    """
+    # Try to get custom error description if available
+    error_description = getattr(error, 'description', None)
+
+    return render_template('400.html', error_description=error_description), 400
+
+@app.errorhandler(500)
+def internal_error(error):
+    # (Optional) Log the error if you want
+    app.logger.error(f"Server Error: {error}")
+    return render_template('500.html'), 500
+
 # Home and static pages
 @app.route("/")
 def home():

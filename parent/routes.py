@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from extensions import db, mail, serializer
-from utils.security import role_required, sanitize_input, validate_file, allowed_file, upload_to_gcs
+from utils.security import handle_exception, role_required, sanitize_input, validate_file, allowed_file, upload_to_gcs
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -16,21 +16,11 @@ parent_bp = Blueprint("parent", __name__)
 @login_required
 @role_required("parent")
 def parent_dashboard():
-    user_id = str(current_user.get_id())
-    # Find reservations associated with this parent's student(s)
-    reservations = list(db.reservations.aggregate([
-        {"$match": {"parent_id": user_id}},
-        {"$lookup": {
-            "from": "tour_instances",
-            "localField": "tour_id",
-            "foreignField": "_id",
-            "as": "tour"
-        }},
-        {"$unwind": "$tour"},
-        {"$sort": {"tour.date": 1}}
-    ]))
-
-    return render_template("dashboards/parent.html", reservations=reservations)
+    try:
+        return redirect(url_for("auth.dashboard"))
+    except Exception as e:
+        handle_exception(e)
+        return redirect(url_for('home'))
 
 @parent_bp.route("/confirm/<token>", methods=["GET", "POST"])
 @login_required

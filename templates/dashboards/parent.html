@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Parent Dashboard{% endblock%}
 {% block content %}
+{{ dashboard }}
 <h1 class="mb-4">Parent Dashboard</h1>
 <p>View your student’s tours, confirmations, and alerts.</p>
+<div class="row">
+    {% include "dashboards/dashboard_insert.html" %}
+</div>
 {% endblock %}

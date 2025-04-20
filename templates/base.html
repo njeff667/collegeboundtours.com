@@ -98,7 +98,8 @@
               <li>
                 <a class="dropdown-item" href="{{ url_for('tours.my_reservations') }}">My Reservations</a>
               </li><li>
-                <a class="dropdown-item" href="{% if current_user.role == 'admin' %}
+                <a class="dropdown-item" href="
+                {% if current_user.role == 'admin' %}
                 {{ url_for('admin.admin_dashboard') }}
                 {% elif current_user.role == 'parent' %}
                 {{ url_for('parent.parent_dashboard') }}
