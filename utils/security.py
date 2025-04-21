@@ -7,6 +7,7 @@ from flask_login import current_user
 from google.cloud import storage
 import os,traceback
 from dotenv import load_dotenv
+import pyclamd
 
 # Load environment variables
 load_dotenv()
@@ -103,3 +104,20 @@ def upload_to_gcs(file, filename, bucket_name="your-gcs-bucket-name"):
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))
+    
+def scan_file_for_viruses(filepath):
+    """
+    Scan a file using ClamAV. Returns True if clean, False if infected.
+    """
+    try:
+        cd = pyclamd.ClamdUnixSocket()
+        if not cd.ping():
+            cd = pyclamd.ClamdNetworkSocket()
+        result = cd.scan_file(filepath)
+        if result is None:
+            return True  # No virus found
+        else:
+            return False  # Virus found
+    except Exception as e:
+        print(f"⚠️ Virus scanner error: {e}")
+        return False  # Fail safe: block file if can't scan

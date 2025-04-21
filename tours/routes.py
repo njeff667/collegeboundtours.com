@@ -5,18 +5,13 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from student.routes import generate_parent_token, send_parent_consent_email
 from extensions import db, mail, serializer
-from utils.security import handle_exception, role_required, validate_file, allowed_file, upload_to_gcs, sanitize_input
+from utils.security import scan_file_for_viruses, handle_exception, role_required, validate_file, allowed_file, upload_to_gcs, sanitize_input
 from werkzeug.utils import secure_filename
-import os, socket
+import os, socket, tempfile
 
 tours_bp = Blueprint("tours", __name__)
 
-if current_user:
-    UPLOAD_FOLDER = f"uploads_private/{current_user.role}"
-else:
-    print("The user is not logged in.")
-
-def add_reservation_to_cart(user_id, student_id):
+def add_reservation_to_cart(user_id, student_id, tour_id):
     """
     Add a reservation to the user's cart.
 
@@ -28,17 +23,42 @@ def add_reservation_to_cart(user_id, student_id):
         None
     """
     try:
+        tour_info = db.tour_instances.find_one({"_id": tour_id})
+        template = [
+            {
+                '$lookup': {
+                    'from': 'tour_template',
+                    'localField': 'template_id',
+                    'foreignField': '_id',
+                    'as': 'template_id'
+                }
+            },
+            {
+                '$unwind': '$template_id'
+            },
+            {
+                '$template': {
+                    '_id': 1,
+                    'date': 1,
+                    'title': '$tour_templates.title',
+                    'university_names': '$tour_instances.university_names',
+                    'price_tier': 1
+                }
+            }
+        ]
+        tour_results = tour_info.aggregate(template)
+
         cart_item = {
-            "user_id": user_id,
             "student_id": student_id,
             "added_at": datetime.utcnow(),
             "status": "pending",  # pending payment or confirmation
-            "reservation_data": {
-                # Optional: Add more fields like selected tour, number of guests, etc.
-            }
+            "reservation_data": tour_results
         }
+        if user_id != student_id:
+            cart_item["parent_id"] = user_id
 
         db.cart.insert_one(cart_item)
+        db.reservations.insert_one(cart_item)
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))
@@ -199,15 +219,15 @@ def get_tour_name(tour_id):
         handle_exception(e)
         return redirect(url_for('home'))
 
-def handle_parent_checklist(user):
+def handle_parent_checklist(user, tour_id):
     try:
         if not isinstance(user.profile, dict):
-            flash("Please fill complete your profile before reserving.", "error")
+            flash("Please fill complete your profile before reserving.", "info")
             return redirect(url_for("auth.profile"))
         
         linked_students = link_students(user.id)
         if not linked_students:
-            flash("You must link a student to your account before proceeding.")
+            flash("You must link a student to your account before proceeding.", "info")
             return redirect(url_for('tours.link_student'))
         
         selected_student_id = request.form.get('student_id')
@@ -216,63 +236,108 @@ def handle_parent_checklist(user):
         
 
         if not has_signed_consent_form(selected_student_id):
-            flash("You must sign a consent form for your student.")
+            flash("You must sign a consent form for your student.", "info")
             return redirect(url_for('tours.sign_consent', student_id=selected_student_id))
 
         if not has_signed_code_of_conduct(user.id, within_days=365):
-            flash("You must sign the Code of Conduct.")
+            flash("You must sign the Code of Conduct.", "info")
             return redirect(url_for('tours.sign_code_of_conduct'))
 
         if not has_valid_photo_id(user.id):
-            flash("You must upload a valid photo ID.")
+            flash("You must upload a valid photo ID.", "info")
             return redirect(url_for('tours.upload_photo_id'))
 
         if request.form.get('is_attending') == 'yes':
             if not has_recent_background_check(user.id, within_days=180):
-                flash("You must complete a background check to attend.")
+                flash("You must complete a background check to attend.", "info")
                 return redirect(url_for('tours.submit_background_check'))
 
-        add_reservation_to_cart(user.id, selected_student_id)
-        flash("Reservation added to cart successfully.")
+        add_reservation_to_cart(user.id, selected_student_id, tour_id)
+        flash("Reservation added to cart successfully.", "success")
         return redirect(url_for('tours.cart'))
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))
 
-def handle_student_checklist(user):
+@tours_bp.route('/submit_background_check', methods=['GET', 'POST'])
+@login_required
+@role_required("parent")
+def submit_background_check():
+    """
+    Allow a parent to submit their background check file.
+    """
+    try:
+        if request.method == 'POST':
+            file = scan_file_for_viruses(request.files.get('background_check_file'))
+
+            if not file or file.filename == '':
+                flash("No file selected.", "danger")
+                return redirect(request.url)
+
+            if not allowed_file(file.filename):
+                flash("Invalid file type. Only PDF, JPG, JPEG, or PNG allowed.", "danger")
+                return redirect(request.url)
+
+            filename = secure_filename(file.filename)
+            filename = f"{current_user.id}_backgroundcheck_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
+
+            upload_folder = "uploads_private/background_checks"  # Safe folder outside public static
+            save_path = os.path.join(upload_folder, filename)
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+            file.save(save_path)
+
+            # Save background check record to database
+            db.background_checks.insert_one({
+                "user_id": current_user.id,
+                "file_path": save_path,
+                "uploaded_at": datetime.utcnow(),
+                "status": "pending"  # Admin must approve
+            })
+
+            flash("Background check submitted successfully! It is now pending review by an admin.", "sucess")
+            return redirect(url_for('tours.tour_checklist'))
+
+        return render_template('submit_background_check.html')
+
+    except Exception as e:
+        handle_exception(e)
+        return redirect(url_for('home'))
+    
+def handle_student_checklist(user, tour_id):
     try:
         if isinstance(user.profile, dict) and user.profile.get("birthdate"):
             age = calculate_age(user.profile.get("birthdate"))
         else:
-            flash("Please fill complete your profile before reserving.", "error")
+            flash("Please fill complete your profile before reserving.", "info")
             return redirect(url_for("auth.profile"))
 
         if age is None:
-            flash("Birthdate is missing from your profile. Please complete your profile first.")
+            flash("Birthdate is missing from your profile. Please complete your profile first.", "info")
             return redirect(url_for('profile.complete_profile'))  # Example page
 
         if age >= 18:
             if age > 20:
-                flash("Students over 20 are not eligible to participate.")
+                flash("Students over 20 are not eligible to participate.", "info")
                 return redirect(url_for('home'))
 
             if not has_signed_code_of_conduct(user.id, within_days=365):
-                flash("You must sign the Code of Conduct.")
+                flash("You must sign the Code of Conduct.", "info")
                 return redirect(url_for('tours.sign_code_of_conduct'))
 
             if not has_valid_photo_id(user.id):
-                flash("You must upload a valid student ID.")
+                flash("You must upload a valid student ID.", "info")
                 return redirect(url_for('tours.upload_photo_id'))
         else:
             if not has_linked_parent(user.id):
-                flash("You must have a parent linked to your account.")
+                flash("You must have a parent linked to your account.", "info")
                 return redirect(url_for('tours.link_parent'))
 
             if not has_signed_code_of_conduct(user.id, within_days=365):
-                flash("You must sign the Code of Conduct.")
+                flash("You must sign the Code of Conduct.", "info")
                 return redirect(url_for('tours.sign_code_of_conduct'))
 
-        add_reservation_to_cart(user.id, user.id)
+        add_reservation_to_cart(user.id, user.id, tour_id)
         flash("Reservation added to cart successfully.")
         return redirect(url_for('tours.cart'))
     except Exception as e:
@@ -356,7 +421,7 @@ def has_valid_photo_id(user_id):
             return False
 
         # (Optional but recommended) Check if the file physically exists on disk
-        import os
+        UPLOAD_FOLDER = f"uploads_private/{current_user.role}"
         file_path = os.path.join(UPLOAD_FOLDER, photo_id_file)  # Adjust your uploads path!
         if not os.path.exists(file_path):
             return False
@@ -608,7 +673,7 @@ def delete_photo_id():
             {"$unset": {"profile.photo_id_file": "", "profile.photo_id_approval": ""}}
         )
 
-        flash('Photo ID deleted successfully. You may upload a new one.')
+        flash("Photo ID deleted successfully. You may upload a new one.", "success")
         return redirect(url_for('tours.upload_photo_id'))
     except Exception as e:
         handle_exception(e)
@@ -623,7 +688,7 @@ def link_parent():
             parent_email = request.form.get('parent_email')
 
             if not parent_email:
-                flash("Please provide your parent's email address.", "warning")
+                flash("Please provide your parent's email address.", "danger")
                 return redirect(request.url)
 
             parent_email = parent_email.lower().strip()
@@ -730,7 +795,7 @@ def link_student():
             student_emails = request.form.getlist('student_email')
 
             if not student_emails:
-                flash("Please enter at least one student's email address.", "warning")
+                flash("Please enter at least one student's email address.", "danger")
                 return redirect(request.url)
 
             linked_students = []
@@ -847,12 +912,12 @@ def reserve_tour(tour_id):
         tour = db.tour_instances.find_one({"_id": tour_id})
 
         if not tour:
-            flash("Tour not found.", "error")
+            flash("Tour not found.", "danger")
             return redirect(url_for("tours.tour_schedule"))
 
         existing = db.reservations.find_one({"user_id": user_id, "tour_id": tour_id})
         if existing:
-            flash("Already registered or waitlisted.")
+            flash("Already registered or waitlisted.", "danger")
             return redirect(url_for("tours.tour_schedule"))
 
         capacity = tour.get("capacity", 13)
@@ -882,7 +947,7 @@ def reserve_tour(tour_id):
         if status == "Confirmed":
             db.tour_instances.update_one({"_id": ObjectId(tour_id)}, {"$inc": {"registered": 1}})
 
-        flash(f"Successfully registered! Status: {status}")
+        flash(f"Successfully registered! Status: {status}", "success")
         return redirect(url_for("tours.tour_schedule"))
     except Exception as e:
         handle_exception(e)
@@ -896,7 +961,7 @@ def sign_consent(student_id, tour_id):
         if request.method == 'POST':
             signature = request.form.get('signature')
             if not signature:
-                flash("Signature is required.")
+                flash("Signature is required.", "danger")
                 return redirect(request.url)
 
             consent_data = {
@@ -911,7 +976,7 @@ def sign_consent(student_id, tour_id):
             # Save to database
             save_consent_form(consent_data)
 
-            flash("Consent form signed successfully.")
+            flash("Consent form signed successfully.", "success")
             return redirect(url_for('tours.tour_checklist'))  # Or wherever you want to send them next
 
         # If GET, show the form
@@ -957,16 +1022,19 @@ def tour_details(tour_id):
     
 @tours_bp.route('/tour_checklist', methods=['GET', 'POST'])
 @login_required
-def tour_checklist(tour_id):
+def tour_checklist():
     try:
         user = current_user
+        tour_id = None
+        if request.args.get("tour_id"):
+            tour_id = request.args.get("tour_id")
 
         if user.role == "parent":
-            return handle_parent_checklist(user)
+            return handle_parent_checklist(user, tour_id)
         elif user.role == "student":
-            return handle_student_checklist(user)
+            return handle_student_checklist(user, tour_id)
         else:
-            flash("Unknown user role. Please contact support.")
+            flash("Unknown user role. Please contact support.", "danger")
             return redirect(url_for('home'))
     except Exception as e:
         handle_exception(e)
@@ -1013,7 +1081,7 @@ def complete_profile():
                     "profile_complete": True
                 }}
             )
-            flash("Profile updated.")
+            flash("Profile updated.", "success")
             return redirect(url_for("tours.tour_schedule"))
 
         return render_template("complete_profile.html")
@@ -1034,7 +1102,7 @@ def choose_alternatives(tour_id):
                 "preferred_alternative_id": ObjectId(selected_tour),
                 "timestamp": datetime.utcnow()
             })
-            flash("Alternative preference submitted.")
+            flash("Alternative preference submitted.", "success")
             return redirect(url_for("tours.my_reservations"))
 
         available = db.tour_instances.find({
@@ -1046,83 +1114,61 @@ def choose_alternatives(tour_id):
         handle_exception(e)
         return redirect(url_for('home'))
 
-@tours_bp.route('/upload_student_id', methods=['GET', 'POST'])
-@login_required
-@role_required("student")
-def upload_student_id():
-    try:
-        if request.method == 'POST':
-            file = request.files.get('student_id_file')
-
-            if not file or file.filename == '':
-                flash('No file selected.')
-                return redirect(request.url)
-
-            if not allowed_file(file.filename):
-                flash('Invalid file type. Please upload PNG, JPG, JPEG, or PDF.')
-                return redirect(request.url)
-
-            filename = secure_filename(file.filename)
-            filename = f"{current_user.id}_studentid_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
-
-            file_path = os.path.join("static/uploads/student_ids", filename)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            file.save(file_path)
-
-            # Save file path into DB
-            db.users.update_one(
-                {"_id": current_user.id},
-                {"$set": {"profile.student_id_file": file_path}}
-            )
-
-            flash('Student ID uploaded successfully!')
-            return redirect(url_for('tours.tour_checklist'))
-
-        # GET method - show form + current upload
-        user = db.users.find_one({"_id": current_user.id})
-        student_id_file = None
-
-        if user:
-            profile = user.get("profile", {})
-            student_id_file = profile.get("student_id_file", None)
-
-        return render_template('student_id_upload.html', student_id_file=student_id_file)
-    except Exception as e:
-        handle_exception(e)
-        return redirect(url_for('home'))
-
 @tours_bp.route('/upload_photo_id', methods=['GET', 'POST'])
 @login_required
 def upload_photo_id(): 
     try:   
         if request.method == 'POST':
-            file = request.files.get('photo_id_file')
+            front_id = request.files.get('front_id_file')
+            back_id = request.files.get('back_id_file')
 
-            if not file or file.filename == '':
-                flash("No file selected.")
+            def test_photo_id(file, file_title):
+                if not file or file.filename == '':
+                    flash(f"No file selected for the {file_title}.", "danger")
+                    return False
+
+                if not allowed_file(file.filename):
+                    flash(f"Invalid file type for the {file_title}. Only JPG, JPEG, PNG, or PDF allowed.", "danger")
+                    return False
+
+                # Save temporarily
+                temp_dir = tempfile.mkdtemp()
+                temp_path = os.path.join(temp_dir, secure_filename(file.filename))
+                file.save(temp_path)
+
+                # Virus scan
+                if not scan_file_for_viruses(temp_path):
+                    flash(f"Upload rejected. {file_title} contains a virus or could not be safely scanned.", "danger")
+                    os.remove(temp_path)
+                    return False
+
+                # Move to secure folder after passing virus scan
+                filename = f"{current_user.id}_photo_id_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secure_filename(file.filename)}"
+                upload_folder = f"uploads_private/{current_user.role}/{current_user.id}"
+                save_path = os.path.join(upload_folder, filename)
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+                os.rename(temp_path, save_path)
+
+                # Save file path into DB
+                db.users.update_one(
+                    {"_id": current_user.id},
+                    {"$set": {
+                        f"profile.{file_title.replace(' ', '_').lower()}_file": save_path,
+                        f"profile.{file_title.replace(' ', '_').lower()}_approval": "pending"
+                    }}
+                )
+            
+            front_id_status = test_photo_id(front_id, "front_of_id")
+            back_id_status = test_photo_id(back_id, "back_of_id")
+            if front_id_status == False or back_id_status == False:
                 return redirect(request.url)
 
-            if not allowed_file(file.filename):
-                flash("Invalid file type. Only JPG, JPEG, PNG, or PDF allowed.")
-                return redirect(request.url)
-
-            filename = secure_filename(file.filename)
-            filename = f"{current_user.id}_photo_id_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
-
-            save_path = os.path.join(UPLOAD_FOLDER, filename)
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            file.save(save_path)
-
-            # Save file path into DB
-            db.users.update_one(
-                {"_id": current_user.id},
-                {"$set": {"profile.photo_id_file": save_path, "profile.photo_id_approval": "pending"}}
-            )
-
-            flash("Photo ID uploaded successfully. An admin will review for approval.")
+            flash("Photo ID uploaded successfully. An admin will review for approval.", "success")
             return redirect(url_for('tours.tour_checklist'))
-
+        
         return render_template('upload_photo_id.html')
+
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))
@@ -1202,29 +1248,33 @@ def remove_from_cart(cart_id):
 @login_required
 def sign_code_of_conduct():
     try:
+        user_name =  current_user.name
         if request.method == 'POST':
+
             agree = request.form.get('agree')
             signature = request.form.get('signature')
+            if user_name == signature:
 
-            if not agree:
-                flash("You must agree to the Code of Conduct before signing.")
-                return redirect(request.url)
-            if not signature:
-                flash("Signature is required.")
-                return redirect(request.url)
+                if not agree:
+                    flash("You must agree to the Code of Conduct before signing.", "danger")
+                    return redirect(request.url)
+                if not signature:
+                    flash("Signature is required.", "danger")
+                    return redirect(request.url)
 
-            # Save Code of Conduct signature to database
-            db.code_of_conducts.insert_one({
-                "user_id": current_user.id,
-                "signed_date": datetime.utcnow(),
-                "signature_text": signature,
-                "ip_address": request.remote_addr or socket.gethostbyname(socket.gethostname())
-            })
+                # Save Code of Conduct signature to database
+                db.code_of_conducts.insert_one({
+                    "user_id": current_user.id,
+                    "signed_date": datetime.utcnow(),
+                    "signature_text": signature,
+                    "ip_address": request.remote_addr or socket.gethostbyname(socket.gethostname())
+                })
 
-            flash("Code of Conduct signed successfully.")
-            return redirect(url_for('tours.tour_checklist'))
-
-        return render_template('code_of_conduct.html')
+                flash("Code of Conduct signed successfully.", "success")
+                return redirect(url_for('tours.tour_checklist'))
+            else:
+                flash("The signature and name must match. Please try again.", "danger")
+        return render_template('code_of_conduct.html', user_name =  user_name)
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))

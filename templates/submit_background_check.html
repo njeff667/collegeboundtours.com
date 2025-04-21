@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Submit Background Check{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <h2>Submit Background Check</h2>
+
+    <p>Please upload a copy of your background check results. Only PDF, JPG, JPEG, or PNG files are accepted.</p>
+
+    <form method="POST" action="{{ url_for('tours.submit_background_check') }}" enctype="multipart/form-data">
+        <div class="mb-3">
+            <input type="file" name="background_check_file" class="form-control" accept="application/pdf,image/*" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Background Check</button>
+    </form>
+
+    <div class="mt-4">
+        <a href="{{ url_for('tours.tour_checklist') }}" class="btn btn-secondary">Back to Checklist</a>
+    </div>
+</div>
+{% endblock %}

@@ -19,10 +19,13 @@
 
     <hr>
 
-    <form method="POST" action="{{ url_for('tours.upload_student_id') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('tours.upload_photo_id') }}" enctype="multipart/form-data">
         <div class="mb-3">
-            <label for="student_id_file" class="form-label">Upload New Student ID:</label>
-            <input type="file" name="student_id_file" id="student_id_file" class="form-control" required accept="image/*,application/pdf">
+            <label for="front_id_file" class="form-label">Upload the Front of your ID:</label>
+            <input type="file" name="front_id_file" id="front_id_file" class="form-control" required accept="image/*,application/pdf">
+            <label for="back_id_file" class="form-label">Upload the Front of your ID:</label>
+            <input type="file" name="back_id_file" id="back_id_file" class="form-control" required accept="image/*,application/pdf">
+
         </div>
 
         <button type="submit" class="btn btn-primary">Upload Student ID</button>

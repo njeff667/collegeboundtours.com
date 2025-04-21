@@ -1,108 +1,176 @@
 <div class="col-md-4">
-  <div class="card text-white bg-{% if dashboard.profile_created == true %}success{% else %}danger{% endif %} mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Profile Completion</h5>
-      <p class="card-text">
-        * Status: Not Started, Incomplete, Complete<br>
-        * This is a general status. <br>
-        * User collection - If current_user.profile
-      </p>
-  </div>
-  </div>
-</div>
-
-<div class="col-md-4">
-  <div class="card text-white bg-primary mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Valid Consent Form</h5>
-      <p class="card-text md-1">
-        * Status: no valid on file or valid on file<br>
-        * This is a reservation specific status. <br>
-        * Valid when signed by parent/guardian within 60 days.<br> 
-        * From the consent_form colleciton.<br>
-        * if db.consent_form.find_one("user_id": current_user.get(id))
-      </p>
-  </div>
-  </div>
+  <a href="" class="dashboard-card card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Account Creation</h5>
+        <h6 class="card-text">* Required.</h6>
+        <p class="card-text md-1">
+          Your account has been created. Welcome to College Bound Tours!
+        </p>
+      </div>
+    </a>
 </div>  
 
 <div class="col-md-4">
-  <div class="card text-white bg-{% if dashboard.signed_code_of_conduct == true %}success{% else %}danger{% endif %} mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Valid Code of Conduct</h5>
-      <p class="card-text md-1">
-        * This will be signed by both the parents and child
-        * if db.code_of_conducts.find_one("user_id": current_user.get(id)) <br>
-        * date needs to be added and consent form needs to be signed less than 180 days
-      </p>
-  </div>
-  </div>
+  <a href="{% if student %}{ url_for('') }{% elif parent %}{ url_for('') }{% endif %}" class="dashboard-card card text-white bg-{% if dashboard.profile_created == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Profile Completion</h5>
+        <h6 class="card-text">* Required</h6>
+        <p class="card-text">
+          {% if student %}
+          Complete your personal profile with basic contact and student details.
+          {% elif parent %}
+          Complete your personal profile with basic contact.
+          {% endif %}
+        </p>
+    </div>
+  </a>
+</div>
+
+<div class="col-md-4">
+  <a href="" class="dashboard-card card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Valid Consent Form</h5>
+        <h6 class="card-text">* Required for parents of students under 18 years of age. Valid for 60 days for each visit.</h6>
+        <p class="card-text md-1">
+          * Status: no valid on file or valid on file<br>
+          * This is a reservation specific status. <br>
+          * Valid when signed by parent/guardian within 60 days.<br> 
+          * From the consent_form colleciton.<br>
+          * if db.consent_form.find_one("user_id": current_user.get(id))
+        </p>
+      </div>
+    </a>
+</div>  
+
+<div class="col-md-4">
+  <a href="{{ url_for('tours.sign_code_of_conduct') }}" class="dashboard-card card text-white bg-{% if dashboard.signed_code_of_conduct == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Valid Code of Conduct</h5>
+        <h6 class="card-text">* Required. Valid for 180 days.</h6>
+        <p class="card-text md-1">
+          * This will be signed by both the parents and child
+          * if db.code_of_conducts.find_one("user_id": current_user.get(id)) <br>
+          * date needs to be added and consent form needs to be signed less than 180 days
+        </p>
+    </div>
+  </a>
 </div>
           
 <div class="col-md-4">
-  <div class="card text-white bg-{% if dashboard.linked_accounts == true %}success{% else %}danger{% endif %} mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Linked Accounts between Parents/Guardians and Students under 18 years old</h5>
-      <p class="card-text md-1">Placeholder...</p>
-  </div>
-  </div>
+  <a href="" class="dashboard-card card text-white bg-{% if dashboard.linked_accounts == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Linked Accounts between Parents/Guardians and Students</h5>
+        <h6 class="card-text">* Required for students under 18 years of age</h6>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+  </a>
 </div>
 
 <div class="col-md-4">
-  <div class="card text-white bg-primary mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Reserved Tour Date</h5>
-      <p class="card-text md-1">Placeholder...</p>
-  </div>
-  </div>
+  <a href="{{ url_for('tours.tour_schedule') }}" class="dashboard-card card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Reserved Tour Date</h5>
+        <p class="card-text md-1">Select and reserve your tour date to secure your seat.</p>
+    </div>
+  </a>
 </div>
 
 <div class="col-md-4">
-  <div class="card text-white bg-{% if dashboard.parent_photo_uploaded == true %}success{% else %}danger{% endif %} mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Verify Parent/Guardian ID</h5>
-      <p class="card-text md-1">
-        * if db.consent_form.find_one("user_id": current_user.get(id))
-        * add the expiration date
-        * it can be pending, accepted, denied  
-      </p>
-  </div>
-  </div>
+  <a href="" class="dashboard-card card text-white bg-{% if dashboard.parent_photo_uploaded == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Verify Parent/Guardian ID</h5>
+        <h6 class="card-text">* Required</h6>
+        <p class="card-text md-1">
+          * if db.consent_form.find_one("user_id": current_user.get(id))
+          * add the expiration date
+          * it can be pending, accepted, denied  
+        </p>
+    </div>
+  </a>
 </div>
 
 <div class="col-md-4">
-  <div class="card text-white bg-{% if dashboard.student_photo_uploaded == true %}success{% else %}danger{% endif %} mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Verify Student ID</h5>
-      <p class="card-text md-1">Placeholder...</p>
-  </div>
-  </div>
+  <a href="" class="dashboard-card card text-white bg-{% if dashboard.student_photo_uploaded == true %}success{% else %}danger{% endif %} mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Verify Student ID</h5>
+        <h6 class="card-text">* Required</h6>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+  </a>
 </div>
 
 <div class="col-md-4">
-  <div class="card text-white bg-primary mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Background Check</h5>
-      <p class="card-text md-1">Placeholder...</p>
-  </div>
-  </div>
+  <a href="{{ url_for('tours.submit_background_check') }}" class="dashboard-card card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Criminal Background Check (If Parent/Guardian Travels)</h5>
+        <p class="card-text md-1">Required only if the parent will physically attend the tour with the student.</p>
+    </div>
+  </a>
 </div>
 
 <div class="col-md-4">
-  <div class="card text-white bg-primary mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Criminal Background Check (if parent travels)</h5>
-      <p class="card-text md-1">Placeholder...</p>
-  </div>
-  </div>
+  <a href="{{ url_for('tours.submit_background_check') }}" class="dashboard-card card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Criminal Background Check (if parent travels)</h5>
+        <h6 class="card-text">* Required if parent travels with the tour.</h6>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+  </a>
 </div>
 
 <div class="col-md-4">
-  <div class="card text-white bg-primary mb-3">
-  <div class="card-body">
-      <h5 class="card-title">Verify Itinerary</h5>
-      <p class="card-text md-1">Placeholder...</p>
-  </div>
-  </div>
+  <a href="" class="dashboard-card card text-white bg-primary mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Verify Itinerary</h5>
+        <p class="card-text md-1">Placeholder...</p>
+    </div>
+  </a>
 </div>
-</div>
+
+"""[
+
+
+  {
+    "Task": "Account Link to Parent",
+    "Status": "not started",
+    "Required": true,
+    "Descr": "If you are a student under 18, your account must be linked to your parent or legal guardian.",
+    "Url": " url_for('student.request_link') ",
+    "Need_by": "Before"
+  },
+  {
+    "Task": "Account Link to Student",
+    "Status": "not started",
+    "Required": true,
+    "Descr": "Parents must approve the link between their account and their student's account.",
+    "Url": "{ url_for('parent.link_students') }",
+    "Need_by": "Before"
+  },
+
+  {
+    "Task": "Verify Parent ID",
+    "Status": "not started",
+    "Required": true,
+    "Descr": "Parents must upload a government-issued ID.",
+    "Url": "{ url_for('parent.upload_id') }",
+    "Need_by": "Before"
+  },
+
+  {
+    "Task": "Verify Student Status",
+    "Status": "not started",
+    "Required": true,
+    "Descr": "Upload a valid Student ID (or State ID if under 18). Seniors over 18 must still provide high school ID.",
+    "Url": "{{ url_for('tours.upload_photo_id') }}",
+    "Need_by": "Before"
+  },
+  {
+    "Task": "Parent Signs Itinerary at Dropoff",
+    "Status": "not started",
+    "Required": true,
+    "Descr": "Parents must meet the staff at dropoff, verify the itinerary, and sign the final attendance form.",
+    "Url": " url_for('parent.dropoff_confirmation') ",
+    "Need_by": "Before"
+  }
+]
+"""
