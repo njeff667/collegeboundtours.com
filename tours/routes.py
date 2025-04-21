@@ -611,7 +611,7 @@ def test_file(file, file_title):
                     {"_id": current_user.id},
                     {"$set": {
                         f"profile.{file_title.replace(' ', '_').lower()}_file": save_path,
-                        f"profile.{file_title.replace(' ', '_').lower()}_approval": "pending"
+                        f"profile.{file_title.replace(' ', '_').lower()}_approval": "pending",
                         f"profile.{file_title.replace(' ', '_').lower()}_time": datetime.now()
                     }}
                 )
