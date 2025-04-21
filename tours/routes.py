@@ -268,33 +268,10 @@ def submit_background_check():
     """
     try:
         if request.method == 'POST':
-            file = scan_file_for_viruses(request.files.get('background_check_file'))
-
-            if not file or file.filename == '':
-                flash("No file selected.", "danger")
+            file = request.files.get('background_check_file')
+            file_status = test_file(file, "background check")
+            if file_status == False:
                 return redirect(request.url)
-
-            if not allowed_file(file.filename):
-                flash("Invalid file type. Only PDF, JPG, JPEG, or PNG allowed.", "danger")
-                return redirect(request.url)
-
-            filename = secure_filename(file.filename)
-            filename = f"{current_user.id}_backgroundcheck_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{filename}"
-
-            upload_folder = "uploads_private/background_checks"  # Safe folder outside public static
-            save_path = os.path.join(upload_folder, filename)
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-            file.save(save_path)
-
-            # Save background check record to database
-            db.background_checks.insert_one({
-                "user_id": current_user.id,
-                "file_path": save_path,
-                "uploaded_at": datetime.utcnow(),
-                "status": "pending"  # Admin must approve
-            })
-
             flash("Background check submitted successfully! It is now pending review by an admin.", "sucess")
             return redirect(url_for('tours.tour_checklist'))
 
@@ -600,6 +577,44 @@ def send_email(to_email, subject, body):
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))
+    
+def test_file(file, file_title):
+                if not file or file.filename == '':
+                    flash(f"No file selected for the {file_title}.", "danger")
+                    return False
+
+                if not allowed_file(file.filename):
+                    flash(f"Invalid file type for the {file_title}. Only JPG, JPEG, PNG, or PDF allowed.", "danger")
+                    return False
+
+                # Save temporarily
+                temp_dir = tempfile.mkdtemp()
+                temp_path = os.path.join(temp_dir, secure_filename(file.filename))
+                file.save(temp_path)
+
+                # Virus scan
+                if not scan_file_for_viruses(temp_path):
+                    flash(f"Upload rejected. {file_title} contains a virus or could not be safely scanned.", "danger")
+                    os.remove(temp_path)
+                    return False
+
+                # Move to secure folder after passing virus scan
+                filename = f"{current_user.id}_photo_id_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secure_filename(file.filename)}"
+                upload_folder = f"uploads_private/{current_user.role}/{current_user.id}"
+                save_path = os.path.join(upload_folder, filename)
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+                os.rename(temp_path, save_path)
+
+                # Save file path into DB
+                db.users.update_one(
+                    {"_id": current_user.id},
+                    {"$set": {
+                        f"profile.{file_title.replace(' ', '_').lower()}_file": save_path,
+                        f"profile.{file_title.replace(' ', '_').lower()}_approval": "pending"
+                        f"profile.{file_title.replace(' ', '_').lower()}_time": datetime.now()
+                    }}
+                )
 
 @tours_bp.route('/approve_parent_link/<token>')
 def approve_parent_link(token):
@@ -1121,46 +1136,9 @@ def upload_photo_id():
         if request.method == 'POST':
             front_id = request.files.get('front_id_file')
             back_id = request.files.get('back_id_file')
-
-            def test_photo_id(file, file_title):
-                if not file or file.filename == '':
-                    flash(f"No file selected for the {file_title}.", "danger")
-                    return False
-
-                if not allowed_file(file.filename):
-                    flash(f"Invalid file type for the {file_title}. Only JPG, JPEG, PNG, or PDF allowed.", "danger")
-                    return False
-
-                # Save temporarily
-                temp_dir = tempfile.mkdtemp()
-                temp_path = os.path.join(temp_dir, secure_filename(file.filename))
-                file.save(temp_path)
-
-                # Virus scan
-                if not scan_file_for_viruses(temp_path):
-                    flash(f"Upload rejected. {file_title} contains a virus or could not be safely scanned.", "danger")
-                    os.remove(temp_path)
-                    return False
-
-                # Move to secure folder after passing virus scan
-                filename = f"{current_user.id}_photo_id_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secure_filename(file.filename)}"
-                upload_folder = f"uploads_private/{current_user.role}/{current_user.id}"
-                save_path = os.path.join(upload_folder, filename)
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-                os.rename(temp_path, save_path)
-
-                # Save file path into DB
-                db.users.update_one(
-                    {"_id": current_user.id},
-                    {"$set": {
-                        f"profile.{file_title.replace(' ', '_').lower()}_file": save_path,
-                        f"profile.{file_title.replace(' ', '_').lower()}_approval": "pending"
-                    }}
-                )
             
-            front_id_status = test_photo_id(front_id, "front_of_id")
-            back_id_status = test_photo_id(back_id, "back_of_id")
+            front_id_status = test_file(front_id, "front_of_id")
+            back_id_status = test_file(back_id, "back_of_id")
             if front_id_status == False or back_id_status == False:
                 return redirect(request.url)
 
