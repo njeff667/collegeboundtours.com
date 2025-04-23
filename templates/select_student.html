@@ -13,7 +13,7 @@
         <div class="mb-3">
             {% for student in students %}
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="student_identifiers" id="student_{{ loop.index }}" value="{{ student.student_id if student.student_id else '' }}" onchange="checkStudentAccount(this)">
+                    <input class="form-check-input" type="checkbox" name="student_identifiers" id="student_{{ loop.index }}" value="{{ student.student_id }}:{{ student.student_email }}" onchange="checkStudentAccount(this)">
                     <label class="form-check-label" for="student_{{ loop.index }}">
                         {% if student.student_id %}
                             {{ student.student_name }}
@@ -47,15 +47,20 @@
 
 {% block scripts %}
 <script>
-function checkStudentAccount(checkbox) {
-    const selectedValue = checkbox.value;
-    const newStudentSection = document.getElementById('new-student-name-section');
-
-    if (!selectedValue && checkbox.checked) {
-        newStudentSection.style.display = 'block';
-    } else {
-        newStudentSection.style.display = 'none';
+    function checkStudentAccount(checkbox) {
+        const selectedValue = checkbox.value;
+        const newStudentSection = document.getElementById('new-student-name-section');
+    
+        // Split value into student_id and email
+        const [studentId, studentEmail] = selectedValue.split(':');
+    
+        // If no student_id (empty string before ":"), then show the name input
+        if (!studentId && checkbox.checked) {
+            newStudentSection.style.display = 'block';
+        } else {
+            newStudentSection.style.display = 'none';
+        }
     }
-}
-</script>
+    </script>
+    
 {% endblock %}

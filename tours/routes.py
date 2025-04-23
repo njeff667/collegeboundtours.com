@@ -8,7 +8,7 @@ from student.routes import generate_parent_token, send_parent_consent_email
 from extensions import db, mail, serializer
 from utils.security import scan_file_for_viruses, handle_exception, role_required, validate_file, allowed_file, upload_to_gcs, sanitize_input
 from werkzeug.utils import secure_filename
-import os, socket, tempfile
+import os, json, socket, tempfile
 
 tours_bp = Blueprint("tours", __name__)
 
@@ -254,21 +254,22 @@ def handle_parent_checklist(user, tour_id):
             flash("Please fill complete your profile before reserving.", "info")
             return redirect(url_for("auth.profile", tour_id=tour_id))
         
-        linked_students = get_linked_users(user.id, True)
+        linked_students = get_linked_users(user.id, True) #### MAKE ACCOUNT INACTIVE UNTIL KID CLICKS LINK IN EMAIL, WHERE THEY WILL IMMEDIATELY ASK FOR A PASSWORD RESET.
         if not linked_students:
-            flash("You must link a student to your account before proceeding.", "info")
+            flash("You must link a student to your account before proceeding.", "info") 
             return redirect(url_for('tours.link_email', tour_id=tour_id))
         
-        selected_student_id = request.form.get('student_id')
-        if not selected_student_id:
+        linked_students_to_tour = get_linked_users_to_tour(user.id, True)
+
+        if not linked_students_to_tour:
             return render_template('select_student.html', students=linked_students, tour_id=tour_id)
         
 
-        if not has_signed_consent_form(selected_student_id):
+        if not has_signed_consent_form(user.id, linked_students_to_tour): #Add linked_students_to_tour to function. Make option for list or string
             flash("You must sign a consent form for your student.", "info")
-            return redirect(url_for('tours.sign_consent', student_id=selected_student_id, tour_id=tour_id))
+            return redirect(url_for('tours.sign_consent', student_id=linked_students_to_tour, tour_id=tour_id))
 
-        if not has_signed_code_of_conduct(user.id, within_days=365):
+        if not has_signed_code_of_conduct(user.id, linked_students_to_tour, within_days=60): #Add linked_students_to_tour to function. Make option for list or string
             flash("You must sign the Code of Conduct.", "info")
             return redirect(url_for('tours.sign_code_of_conduct', tour_id=tour_id))
 
@@ -281,7 +282,7 @@ def handle_parent_checklist(user, tour_id):
                 flash("You must complete a background check to attend.", "info")
                 return redirect(url_for('tours.submit_background_check', tour_id=tour_id))
 
-        add_reservation_to_cart(user.id, selected_student_id, tour_id)
+        add_reservation_to_cart(user.id, linked_students_to_tour, tour_id) #Add linked_students_to_tour to function. Make option for list or string
         flash("Reservation added to cart successfully.", "success")
         return redirect(url_for('tours.cart'))
     except Exception as e:
@@ -1169,8 +1170,13 @@ def parent_fill_student_profile():
 @login_required
 def process_selected_students():
     selected_student_identifiers = student_name = None
-    if request.form.getlist('student_identifiers'):
+    if request.form.getlist('student_identifiers') and request.form.getlist('student_identifiers') != "":
         selected_student_identifiers = sanitize_input(request.form.getlist('student_identifiers'))
+    else:
+        flash("There were no students selected.")
+        return redirect(request.url)
+    
+    
     if request.form.get('student_name'):
         student_name = sanitize_input(request.form.get('student_name'))
 
@@ -1181,8 +1187,11 @@ def process_selected_students():
     newly_created_student_ids = []
 
     for selected_student_identifier in selected_student_identifiers:
-        if selected_student_identifier:
-            student = db.users.find_one({"_id": selected_student_identifier, "role": "student"})
+        student_identifier = str(selected_student_identifier).split(":")
+        student_id = student_identifier[0]
+        student_email = student_identifier[1]
+        if student_id:
+            student = db.users.find_one({"_id": student_id, "role": "student"})
             if not student:
                 flash("Selected student not found. Please try again.", "danger")
                 return redirect(request.url)
@@ -1190,17 +1199,45 @@ def process_selected_students():
             if not student_name:
                 flash("Please enter the full name for the new student.", "danger")
                 return redirect(request.url)
-
-            new_student = add_new_account_to_db(selected_student_identifier, student_name, "student")
-            print(new_student)
-            new_student_id = db.users.insert_one(new_student).inserted_id
+            check_email = db.users.find_one({"email": student_email})
+            if not check_email:
+                new_student = add_new_account_to_db(student_email, student_name, "student")
+                new_student_id = db.users.insert_one(new_student).inserted_id
+                flash("New accounts have been created.", "success")
+            else:
+                flash("The account has already been created, but no profile exists.", "warning")
             newly_created_student_ids.append(str(new_student_id))
 
-    if newly_created_student_ids:
-        flash("New accounts have been created.", "success")
+    if newly_created_student_ids:        
         return render_template('student_profile_decision.html', newly_created_student_ids=newly_created_student_ids)
     else:
+        flash("Your selection has been recorded.", "success")
         return redirect(url_for('tours.tour_checklist'))
+
+@tours_bp.route('/student_fill_profile_later', methods=['POST'])
+@login_required
+@role_required("parent")
+def student_fill_profile_later():
+    student_ids = request.form.getlist("student_id")
+    tour_id = request.form.get("tour_id")
+
+    if not student_ids:
+        flash("No students selected.", "danger")
+        return redirect(url_for("home"))
+
+    # Optionally mark that the parent deferred profile completion
+    for sid in student_ids:
+        db.users.update_one(
+            {"_id": ObjectId(sid), "role": "student"},
+            {"$set": {
+                "profile_deferred": True,
+                "profile_deferred_by": str(current_user.id),
+                "profile_complete": False
+            }}
+        )
+
+    flash("Student(s) can log in to complete their profile before attending a tour.", "info")
+    return redirect(url_for("tours.tour_checklist", tour_id=tour_id))
 
 # Tour Schedule View
 @tours_bp.route("/schedule")
