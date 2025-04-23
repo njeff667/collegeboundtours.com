@@ -5,14 +5,15 @@
 
     <p>Enter the email addresses of your students. You can add or remove students before submitting.</p>
 
-    <form method="POST" action="{{ url_for('tours.link_student') }}">
+    <form method="POST" action="{{ url_for('tours.link_email') }}">
         <div id="students-list">
             <div class="mb-3 student-entry input-group">
-                <input type="email" name="student_email" class="form-control" required placeholder="Student Email Address">
+                <input type="email" name="linked_email" class="form-control" required placeholder="Student Email Address">
+                <input type="hidden" name="tour_id" value="{{ tour_id }}">
                 <button type="button" class="btn btn-danger btn-sm remove-student" onclick="removeStudentField(this)">Remove</button>
             </div>
         </div>
-
+        <input type="hidden" name="tour_id" value="{{ tour_id }}">
         <button type="button" class="btn btn-secondary mb-3" onclick="addStudentField()">Add Another Student</button>
         <br>
         <button type="submit" class="btn btn-primary">Link Students</button>

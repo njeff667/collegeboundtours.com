@@ -1,16 +1,25 @@
 # utils/security.py
+from cloudmersive_virus_api_client.rest import ApiException
 from datetime import datetime
 from extensions import db, mail, serializer
 from functools import wraps
 from flask import current_app, request, redirect, url_for, flash
 from flask_login import current_user
 from google.cloud import storage
-import os,traceback
 from dotenv import load_dotenv
-import pyclamd
+import cloudmersive_virus_api_client, os, time, traceback
+
 
 # Load environment variables
 load_dotenv()
+
+
+# Pre-configure once when module loads
+configuration = cloudmersive_virus_api_client.Configuration()
+configuration.api_key['Apikey'] = os.getenv("CLOUDMERSIVE")
+
+api_instance = cloudmersive_virus_api_client.ScanApi(cloudmersive_virus_api_client.ApiClient(configuration))
+
 
 def handle_exception(e):
     """
@@ -52,11 +61,19 @@ def save_error_to_db(error_info):
 def sanitize_input(value):
     try:
         if not value:
-            return ""
+            return "" if not isinstance(value, list) else []
+
+        if isinstance(value, list):
+            # Sanitize each item in the list recursively
+            return [str(item).strip() for item in value if item is not None]
+
+        # Handle single values
         return str(value).strip()
+
     except Exception as e:
         handle_exception(e)
-        return redirect(url_for('home'))
+        return "" if not isinstance(value, list) else []
+
 
 def role_required(required_role):
     try:
@@ -107,17 +124,15 @@ def upload_to_gcs(file, filename, bucket_name="your-gcs-bucket-name"):
     
 def scan_file_for_viruses(filepath):
     """
-    Scan a file using ClamAV. Returns True if clean, False if infected.
+    Scan a file using Cloudmersive Virus Scan API.
+    Pass the file path string. Return True if clean, False if infected or scan error.
     """
     try:
-        cd = pyclamd.ClamdUnixSocket()
-        if not cd.ping():
-            cd = pyclamd.ClamdNetworkSocket()
-        result = cd.scan_file(filepath)
-        if result is None:
-            return True  # No virus found
-        else:
-            return False  # Virus found
-    except Exception as e:
-        print(f"⚠️ Virus scanner error: {e}")
-        return False  # Fail safe: block file if can't scan
+        result = api_instance.scan_file(filepath)  # PATH STRING, not file object!
+        return result.clean_result
+    except ApiException as e:
+        print(f"🚨 Cloudmersive Virus Scan API Error: {e}")
+        return False
+    except Exception as general_e:
+        print(f"🚨 General Error During Virus Scan: {general_e}")
+        return False

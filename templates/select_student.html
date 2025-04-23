@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Select Student(s){% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <h2 class="mb-4">Select Student(s)</h2>
+
+    <p class="lead">
+        Please select all students you are registering for this tour.<br>
+    </p>
+
+    <form method="POST" action="{{ url_for('tours.process_selected_students') }}" id="student-selection-form">
+        <div class="mb-3">
+            {% for student in students %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="student_identifiers" id="student_{{ loop.index }}" value="{{ student.student_id if student.student_id else '' }}" onchange="checkStudentAccount(this)">
+                    <label class="form-check-label" for="student_{{ loop.index }}">
+                        {% if student.student_id %}
+                            {{ student.student_name }}
+                        {% else %}
+                            {{ student.student_email }} (Pending Account)
+                        {% endif %}
+                    </label>
+                </div>
+            {% endfor %}            
+        </div>
+
+        <!-- Section for New Student Name (if needed) -->
+        <div id="new-student-name-section" class="mb-3" style="display:none;">
+            <label for="student_name" class="form-label">Enter Full Name for New Student</label>
+            <input type="text" name="student_name" id="student_name" class="form-control" placeholder="Full Name">
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-4">Continue with Selected Student(s)</button>
+    </form>
+
+    <div class="mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+    <p class="lead">
+        <sub>
+            <strong class="text-danger">Important:</strong> If a selected student does not have an existing account, a basic student account will be automatically created by continuing, and a link will be emailed to them to complete setup.
+        </sub>
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function checkStudentAccount(checkbox) {
+    const selectedValue = checkbox.value;
+    const newStudentSection = document.getElementById('new-student-name-section');
+
+    if (!selectedValue && checkbox.checked) {
+        newStudentSection.style.display = 'block';
+    } else {
+        newStudentSection.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

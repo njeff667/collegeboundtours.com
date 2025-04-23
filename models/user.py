@@ -11,7 +11,7 @@ class User(UserMixin):
         self.password = user_doc.get("password")
         self.profile_complete = user_doc.get("profile_complete", False)
         self.profile = user_doc.get("profile", False)
-        self.datetime_created = datetime.now()
+        self.created_at = datetime.now()
 
     def get_id(self):
         return self.id

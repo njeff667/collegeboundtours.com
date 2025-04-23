@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Complete Student Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <h2 class="mb-4">Student Account Created!</h2>
+
+    <p class="lead">You have successfully created a student account. Before booking a college tour, the student's profile must be completed.</p>
+
+    <div class="alert alert-info">
+        <strong>Who should complete the student profile?</strong>
+    </div>
+
+    <div class="d-grid gap-3 mt-4">
+        <form method="POST" action="{{ url_for('tours.parent_fill_student_profile') }}">
+            <input type="hidden" name="student_id" value="{{ student_id }}">
+            <button type="submit" class="btn btn-primary btn-lg">I (Parent) will complete it now</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('tours.student_fill_profile_later') }}">
+            <input type="hidden" name="student_id" value="{{ student_id }}">
+            <button type="submit" class="btn btn-secondary btn-lg">Let the Student complete it later</button>
+        </form>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-link">Return Home</a>
+    </div>
+</div>
+{% endblock %}

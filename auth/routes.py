@@ -13,6 +13,22 @@ import re, uuid
 
 auth_bp = Blueprint("auth", __name__)
 
+def add_new_account_to_db(email, name, role, password=f"{datetime.now()}"):
+    try:   
+        user = {
+            "id": uuid.uuid4().hex,
+            "email": email,
+            "name": name,
+            "password": generate_password_hash(password),
+            "role": role,  # Default role
+            "created_at": datetime.now(),
+            "profile_complete": False
+        }
+        return user
+    except Exception as e:
+        handle_exception(e)
+        return 
+    
 def is_strong_password(password):
     try:
         return (
@@ -146,13 +162,7 @@ def signup():
                 flash("Email already registered.")
                 return redirect(url_for("auth.signup"))
 
-            user = {
-                "_id": uuid.uuid4().hex,
-                "email": email,
-                "name": name,
-                "password": generate_password_hash(password),
-                "role": role  # Default role
-            }
+            user = add_new_account_to_db(email, name, role, password=datetime.now())
 
             db.users.insert_one(user)
             flash("Account created. Please log in.")
@@ -177,6 +187,7 @@ def logout():
 @login_required
 def profile():
     try:
+        
         tour_id = None
         if request.args.get("tour_id"):
             print(f'request.args.get("tour_id"): {request.args.get("tour_id")}')
@@ -205,7 +216,7 @@ def profile():
             ADD THE LOGIC FOR SAVING THE PROFILE
             """
             if tour_id:
-                return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
+                return redirect(url_for("tours.tour_details", tour_id=tour_id))
             else:
                 if current_user.role == "parent":
                     return redirect(url_for("parent.parent_profile"))            

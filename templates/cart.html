@@ -8,8 +8,11 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Student</th>
-                    <th>Reservation Added</th>
+                    <th>Name</th>
+                    <th>Item</th>
+                    <th>Reservation Date</th>
+                    <th>Qty</th>
+                    <th>Price</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -17,8 +20,14 @@
                 {% for item in cart_items %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ student_map[item.student_id] }}</td>
-                    <td>{{ item.added_at.strftime('%Y-%m-%d %H:%M') if item.added_at else 'Unknown' }}</td>
+                    <td>{{ user_map[item._id] }}</td>
+                    <td>
+                        {{ item.reservation_data.title }}<br>
+                        {{ item.reservation_data.university_names }}
+                    </td>
+                    <td>{{ item.reservation_data.date if item.reservation_data.date else 'Unknown' }}</td>
+                    <td>1</td>
+                    <td>${{ item.reservation_data.price }}</td>
                     <td>
                         <form method="POST" action="{{ url_for('tours.remove_from_cart', cart_id=item._id) }}">
                             <button class="btn btn-danger btn-sm">Remove</button>
