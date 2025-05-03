@@ -1,17 +1,32 @@
-<!-- templates/consent_form.html -->
 {% extends "base.html" %}
-{% block content %}
-<div style="max-width: 600px;">
-    <h2>Tour Consent Form</h2>
-    <p>Please review and sign the consent form for {{ student_name }} for the {{ tour_name }} tour.</p>
+{% block title %}Sign Consent Form{% endblock %}
 
-    <form method="POST" action="{{ url_for('tours.sign_consent', student_id=student_id, tour_id=tour_id) }}">
-        <div class="mb-3">
-            <label for="signature" class="form-label">Type Your Full Name (Signature):</label>
+{% block content %}
+<div class="container mt-5" style="max-width: 700px;">
+    <h2 class="mb-4">Sign Consent for Student(s)</h2>
+
+    <form method="POST">
+        <input type="hidden" name="tour_id" value="{{ tour_id }}">
+
+        {% for student in students %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="student_id" id="student_{{ loop.index }}" value="{{ student._id }}" checked required>
+                <label class="form-check-label" for="student_{{ loop.index }}">
+                    {{ student.name }}
+                </label>
+            </div>
+        {% endfor %}
+
+        <div class="mb-3 mt-4">
+            <label for="signature" class="form-label">Type your full name as electronic signature:</label>
             <input type="text" name="signature" id="signature" class="form-control" required>
         </div>
-        <input type="hidden" name="tour_id" value="{{ tour_id }}">
-        <button type="submit" class="btn btn-primary">Sign Consent Form</button>
+
+        <button type="submit" class="btn btn-primary mt-3">Sign Consent Form(s)</button>
     </form>
+
+    <div class="mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
+    </div>
 </div>
 {% endblock %}

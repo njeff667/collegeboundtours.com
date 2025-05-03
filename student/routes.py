@@ -89,7 +89,7 @@ def student_profile():
             }
             
             updated_profile = db.users.update_one(
-                {"_id": current_user.id},
+                {"_id": ObjectId(current_user.id)},
                 {"$set": {"profile": student_data}},
                 upsert=True
             )

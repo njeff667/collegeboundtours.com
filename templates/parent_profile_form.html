@@ -1,21 +1,8 @@
 <div class="row">
   <div class="col-md-4">
-    <label>First Name:</label>
-    <input type="text" name="first_name" class="form-control" value="{{ parent.get('first_name', '') if parent else '' }}" required>
+    <label>Name:</label>
+    <input type="text" name="name" class="form-control" value="{{ current_user.name }}" required>
   </div>
-  <div class="col-md-4">
-    <label>Middle Name:</label>
-    <input type="text" name="middle_name" class="form-control" value="{{ parent.get('middle_name', '') if parent else '' }}">
-  </div>
-  <div class="col-md-4">
-    <label>Last Name:</label>
-    <input type="text" name="last_name" class="form-control" value="{{ parent.get('last_name', '') if parent else '' }}" required>
-  </div>
-</div>
-  
-<div class="mb-3 mt-3">
-  <label>Email Address:</label>
-  <input type="email" name="email" class="form-control" value="{{ parent.get('email', '') if parent else '' }}" required>
 </div>
 
 <div class="mb-3">
@@ -24,9 +11,67 @@
 </div>
 
 <div class="mb-3">
-  <label>Text Opt In:</label>
+  <label>Marketing and Promotional Text Opt In:</label>
   <select name="text_opt_in" class="form-select">
     <option value="No" {% if parent and parent.get('text_opt_in') == 'No' %}selected{% endif %}>No</option>
     <option value="Yes" {% if parent and parent.get('text_opt_in') == 'Yes' %}selected{% endif %}>Yes</option>
   </select>
+</div>
+
+<div class="mb-3">
+  <label for="m_address">Mailing Address:</label>
+    <textarea class="form-select" id="m_address" name="m_address" placeholder="Optional"></textarea>
+</div>
+
+<div class="mb-3">
+  <label for="b_address">Billing Address:</label>
+    <textarea class="form-select" id="b_address" name="b_address" placeholder="Optional"></textarea>
+</div>
+
+<div class="mb-3">
+
+  <!-- Emergency Contact -->
+  <label for="emergency_contact">Emergency Contact Name:</label>
+  <input type="text" class="form-select" id="emergency_contact" name="emergency_contact" required>
+
+  <label for="emergency_phone">Emergency Contact Phone:</label>
+  <input type="tel" class="form-select" id="emergency_phone" name="emergency_phone" required>
+</div>
+
+<input type="hidden" name="role" value="parent">
+
+<div class="mb-3">
+  <!-- Student Linking -->
+  <label for="student_link">Link to Student(s):</label>
+  <input type="text" class="form-select" id="student_link" name="student_link" placeholder="Student email or code" required>
+</div>
+
+<div class="mb-3">
+  <!-- Consent -->
+  <div class="checkbox">
+    <label>
+      <input type="checkbox" name="guardian_confirmation" required>
+      I confirm that I am the legal guardian of the student(s) I am linking to.
+    </label>
+  </div>
+</div>
+<div class="mb-3">
+
+  <div class="checkbox">
+    <label>
+      <input type="checkbox" name="terms" required>
+      I agree to the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a>.
+    </label>
+  </div>
+</div>
+
+<div class="mb-3">
+
+  <!-- Optional Fields -->
+  <label for="social_media">Social Media Handle (Optional):</label>
+  <input type="text" class="form-select" id="social_media" name="social_media">
+</div>
+<div class="mb-3">
+  <label for="college_preferences">Preferred College Types or Regions (Optional):</label>
+  <input type="text" class="form-select" id="college_preferences" name="college_preferences">
 </div>

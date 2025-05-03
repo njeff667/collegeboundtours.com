@@ -1,4 +1,5 @@
 # utils/security.py
+from bson import ObjectId
 from cloudmersive_virus_api_client.rest import ApiException
 from datetime import datetime
 from extensions import db, mail, serializer
@@ -7,7 +8,7 @@ from flask import current_app, request, redirect, url_for, flash
 from flask_login import current_user
 from google.cloud import storage
 from dotenv import load_dotenv
-import cloudmersive_virus_api_client, os, time, traceback
+import cloudmersive_virus_api_client, os, random, string, time, traceback
 
 
 # Load environment variables
@@ -20,6 +21,19 @@ configuration.api_key['Apikey'] = os.getenv("CLOUDMERSIVE")
 
 api_instance = cloudmersive_virus_api_client.ScanApi(cloudmersive_virus_api_client.ApiClient(configuration))
 
+def generate_datetime_seed():
+    """Create a reproducible seed based on current datetime (YYYYMMDDHHMMSS)."""
+    return int(datetime.now().strftime("%Y%m%d%H%M%S"))
+
+def generate_secure_passphrase(length=23):
+    """Generate a secure passphrase using alphanumerics and safe special characters."""
+    seed = generate_datetime_seed()
+    random.seed(seed)
+
+    safe_specials = "!@#$%^&*-_+="
+    all_chars = string.ascii_letters + string.digits + safe_specials
+
+    return ''.join(random.choices(all_chars, k=length))
 
 def handle_exception(e):
     """
@@ -136,3 +150,31 @@ def scan_file_for_viruses(filepath):
     except Exception as general_e:
         print(f"🚨 General Error During Virus Scan: {general_e}")
         return False
+    
+def sanitize_for_json(data, remove_sensitive=True):
+    """
+    Recursively sanitize MongoDB documents to make them JSON serializable.
+
+    Args:
+        data (dict, list, or primitive): Input data from Mongo.
+        remove_sensitive (bool): If True, removes sensitive fields like 'password'.
+
+    Returns:
+        Sanitized data safe for jsonify or public output.
+    """
+    if isinstance(data, dict):
+        sanitized = {}
+        for key, value in data.items():
+            if remove_sensitive and key in ("password",):  # Add more if needed
+                continue
+            if isinstance(value, ObjectId):
+                sanitized[key] = str(value)
+            else:
+                sanitized[key] = sanitize_for_json(value, remove_sensitive)
+        return sanitized
+
+    elif isinstance(data, list):
+        return [sanitize_for_json(item, remove_sensitive) for item in data]
+
+    else:
+        return data

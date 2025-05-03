@@ -7,16 +7,15 @@ from flask_login import login_user, logout_user, login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from models.user import User
 from utils.email_verification import send_reset_email, get_serializer
-from utils.security import handle_exception, sanitize_input
+from utils.security import generate_secure_passphrase, handle_exception, sanitize_for_json, sanitize_input
 from werkzeug.security import generate_password_hash, check_password_hash
 import re, uuid
 
 auth_bp = Blueprint("auth", __name__)
 
-def add_new_account_to_db(email, name, role, password=f"{datetime.now()}"):
-    try:   
+def add_new_account_to_db(email, name, role, password=generate_secure_passphrase()):
+    try:
         user = {
-            "id": uuid.uuid4().hex,
             "email": email,
             "name": name,
             "password": generate_password_hash(password),
@@ -40,6 +39,25 @@ def is_strong_password(password):
         )
     except Exception as e:
         handle_exception(e)
+        return redirect(url_for('home'))
+
+@auth_bp.route('/activate/<token>')
+def activate_account(token):
+    try:
+        data = serializer.loads(token, salt='activate-student', max_age=86400)
+        student_id = data.get("student_id")
+        
+        db.users.update_one(
+            {"_id": ObjectId(student_id)},
+            {"$set": {"status": "active", "activated_at": datetime.utcnow()}}
+        )
+
+        flash("Your account is now active! Please log in to complete your profile.", "success")
+        return redirect(url_for('auth.login'))
+
+    except Exception as e:
+        handle_exception(e)
+        flash("Activation link is invalid or expired.", "danger")
         return redirect(url_for('home'))
 
 @auth_bp.route('/apple-login')
@@ -114,7 +132,7 @@ def dashboard():
 
             elif role == "student":
                 return  render_template("dashboards/student.html", reservations=reservations, dashboard=dashboard)
-        flash("There was a problem accessing the {role} dashboard", "error")
+        flash("There was a problem accessing the {role} dashboard", "danger")
         return redirect(url_for("home"))
     except Exception as e:
         handle_exception(e)
@@ -126,13 +144,15 @@ def login():
         if request.method == "POST":
             email = sanitize_input(request.form.get("email"))
             password = sanitize_input(request.form.get("password"))
-            user = db.users.find_one({"email": email})
 
-            if user and check_password_hash(user["password"], password):
-                user_obj = User(user)
+            user = db.users.find_one({"email": email})
+            sanatized_user = sanitize_for_json(user, False)
+
+            if sanatized_user and check_password_hash(sanatized_user["password"], password):
+                user_obj = User(sanatized_user) 
                 login_user(user_obj)
                 return redirect(url_for("tours.tour_schedule"))
-            flash("Invalid email or password.")
+            flash("Invalid email or password.", "danger")
         return render_template("login.html")
     except Exception as e:
         handle_exception(e)
@@ -150,22 +170,23 @@ def signup():
             if role == "student" or role == "parent":
                 print(f"{email} registered as a {role}.")
             else:
-                print(f"{email} attempted to register as a {role}, but will now be registered as a student.")
+                print(f"{email} attempted to register as a {role}, but will now be registered as a student.", "warning")
                 role = "student"
 
             # Example usage in your signup route:
             if not is_strong_password(password):
-                flash("Password must be at least 12 characters and include upper/lowercase letters, a number, and a symbol.")
+                flash("Password must be at least 12 characters and include upper/lowercase letters, a number, and a symbol.", "danger")
                 return redirect(url_for("auth.signup"))
 
             if db.users.find_one({"email": email}):
-                flash("Email already registered.")
+                flash("Email already registered.", "danger")
                 return redirect(url_for("auth.signup"))
 
-            user = add_new_account_to_db(email, name, role, password=datetime.now())
+            new_user = add_new_account_to_db(email, name, role, password)
+            print(new_user)
 
-            db.users.insert_one(user)
-            flash("Account created. Please log in.")
+            db.users.insert_one(new_user)
+            flash("Account created. Please log in.", "success")
             return redirect(url_for("auth.login"))
         return render_template("signup.html")
     except Exception as e:
@@ -177,7 +198,7 @@ def signup():
 def logout():
     try:
         logout_user()
-        flash("Logged out successfully.")
+        flash("Logged out successfully.", "success")
         return redirect(url_for("auth.login"))
     except Exception as e:
         handle_exception(e)
@@ -187,29 +208,28 @@ def logout():
 @login_required
 def profile():
     try:
-        
         tour_id = None
         if request.args.get("tour_id"):
-            print(f'request.args.get("tour_id"): {request.args.get("tour_id")}')
             tour_id = sanitize_input(request.args.get("tour_id"))
             print(f"tour_id: {tour_id}")
+        print(current_user.id)
         if request.method == "GET":
             if current_user.role == "parent":
                 if tour_id:
-                    return redirect(url_for("parent.parent_profile", tour_id=tour_id))
+                    return redirect(url_for("parent.parent_profile", tour_id=tour_id, parent=current_user))
                 else:
-                    return redirect(url_for("parent.parent_profile"))            
+                    return redirect(url_for("parent.parent_profile", parent=current_user))            
             elif current_user.role == "student":
                 if tour_id:
-                    return redirect(url_for("student.student_profile", tour_id=tour_id))
+                    return redirect(url_for("student.student_profile", tour_id=tour_id, student=current_user))
                 else:
-                    return redirect(url_for("student.student_profile"))
+                    return redirect(url_for("student.student_profile", student=current_user))
             elif current_user.role == "admin":
-                return redirect(url_for("admin.admin_profile"))
+                return redirect(url_for("admin.admin_profile", admin=current_user))
             elif current_user.role == "operations":
-                return redirect(url_for("operations.operations_profile"))
+                return redirect(url_for("operations.operations_profile", operation=current_user))
             else:
-                flash("There was an error redirecting to your profile. Please try again", "error")
+                flash("There was an error redirecting to your profile. Please try again", "danger")
                 return redirect(url_for("tours.tour_schedule"))
         elif request.method == "POST":
             """

@@ -78,25 +78,32 @@ def parent_profile():
         tour_id = sanitize_input(request.args.get("tour_id"))
         print(f"tour_id: {tour_id}")
     if request.method == "POST":
-        student_data = {
+        profile_data = {
             "user_id": current_user.id,
-            "first_name": sanitize_input(request.form.get("first_name")),
-            "middle_name": sanitize_input(request.form.get("middle_name")),
-            "last_name": sanitize_input(request.form.get("last_name")),
+            "name": sanitize_input(request.form.get("name")),
             "email": sanitize_input(request.form.get("email")),
             "cell_phone": sanitize_input(request.form.get("cell_phone")),
             "text_opt_in": sanitize_input(request.form.get("text_opt_in")),
+            "maddress": sanitize_input(request.form.get("m_address")),
+            "baddress": sanitize_input(request.form.get("b_address")),
+            "emergency_contact": sanitize_input(request.form.get("emergency_contact")),
+            "emergency_phone": sanitize_input(request.form.get("emergency_phone")),
+            "student_link": sanitize_input(request.form.get("student_link")),
+            "guardian_confirmation": sanitize_input(request.form.get("guardian_confirmation")),
+            "terms": sanitize_input(request.form.get("terms")),
+            "social_media": sanitize_input(request.form.get("social_media")),
+            "college_preferences": sanitize_input(request.form.get("college_preferences")),
             "updated_at": datetime.utcnow()
         }
         
         updated_profile = db.users.update_one(
-            {"_id": current_user.id},
-            {"$set": {"profile": student_data}},
+            {"_id": ObjectId(current_user.id)},
+            {"$set": {"name": profile_data["name"], "email": profile_data["email"],"profile": {"cell_phone": profile_data["cell_phone"], "text_opt_in": profile_data["text_opt_in"], "updated_at": profile_data["updated_at"]}}},
             upsert=True
         )
         print(updated_profile)
 
-        flash("Profile updated successfully.")
+        flash("Profile updated successfully.", "success")
         if tour_id:
             return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
     if current_user.profile:

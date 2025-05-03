@@ -65,7 +65,7 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    user_doc = db.users.find_one({"_id": user_id})
+    user_doc = db.users.find_one({"_id": ObjectId(user_id)})
     return User(user_doc) if user_doc else None
     
 # Google OAuth Blueprint
@@ -128,6 +128,10 @@ def contact_submit():
     })
     flash("Message sent.")
     return redirect(url_for("contact"))
+
+@app.route("/privacy", methods=["GET"])
+def privacy():
+    return render_template("privacy.html")
 
 @app.context_processor
 def inject_cart_count():

@@ -2,91 +2,114 @@
 from auth.routes import add_new_account_to_db
 from bson.objectid import ObjectId
 from datetime import date, datetime, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, jsonify, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from student.routes import generate_parent_token, send_parent_consent_email
 from extensions import db, mail, serializer
-from utils.security import scan_file_for_viruses, handle_exception, role_required, validate_file, allowed_file, upload_to_gcs, sanitize_input
+from utils.security import sanitize_for_json, scan_file_for_viruses, handle_exception, role_required, validate_file, allowed_file, upload_to_gcs, sanitize_input
 from werkzeug.utils import secure_filename
 import os, json, socket, tempfile
 
 tours_bp = Blueprint("tours", __name__)
 
-def add_reservation_to_cart(user_id, student_id, tour_id):
-    try:
-        # Force tour_id to ObjectId if necessary
-        """if isinstance(tour_id, str):
-            tour_id = tour_id"""
+def add_reservation_to_cart(user_id, student_ids, tour_id):
+    """
+    Add one or more reservations to the cart, with seat status logic.
 
+    Args:
+        user_id (str): The ID of the parent (or student).
+        student_ids (list or str): Single student ID or list of student IDs.
+        tour_id (str or ObjectId): ID of the tour instance.
+
+    Returns:
+        list: List of reservation/cart items created.
+    """
+    try:
+        tour_id = ObjectId(tour_id) if isinstance(tour_id, str) else tour_id
+        if isinstance(student_ids, str):
+            student_ids = [student_ids]  # Make it a list for unified processing
+
+        # === Step 1: Fetch tour with pricing info
         pipeline = [
-            {
-                '$match': {'_id': tour_id}
-            },
-            {
-                '$lookup': {
-                    'from': 'tour_templates',
-                    'localField': 'template_id',
-                    'foreignField': '_id',
-                    'as': 'template_data'
-                }
-            },
-            {
-                '$unwind': {
-                    'path': '$template_data',
-                    'preserveNullAndEmptyArrays': True
-                }
-            },
-            {
-                '$lookup': {
-                    'from': 'price_tiers',
-                    'localField': 'template_data.price_tier_id',  # 🔥 FIXED
-                    'foreignField': '_id',
-                    'as': 'price_tier_data'
-                }
-            },
-            {
-                '$unwind': {
-                    'path': '$price_tier_data',
-                    'preserveNullAndEmptyArrays': True
-                }
-            },
-            {
-                '$project': {
-                    '_id': 1,
-                    'date': 1,
-                    'title': '$template_data.title',
-                    'university_names': '$university_names',
-                    'price': '$price_tier_data.price'
-                }
-            }
+            {'$match': {'_id': tour_id}},
+            {'$lookup': {
+                'from': 'tour_templates',
+                'localField': 'template_id',
+                'foreignField': '_id',
+                'as': 'template_data'
+            }},
+            {'$unwind': {
+                'path': '$template_data',
+                'preserveNullAndEmptyArrays': True
+            }},
+            {'$lookup': {
+                'from': 'price_tiers',
+                'localField': 'template_data.price_tier_id',
+                'foreignField': '_id',
+                'as': 'price_tier_data'
+            }},
+            {'$unwind': {
+                'path': '$price_tier_data',
+                'preserveNullAndEmptyArrays': True
+            }},
+            {'$project': {
+                '_id': 1,
+                'date': 1,
+                'title': '$template_data.title',
+                'university_names': '$university_names',
+                'price': '$price_tier_data.price',
+                'registered': 1,
+                'capacity': 1
+            }}
         ]
 
-        tour_result_cursor = db.tour_instances.aggregate(pipeline)
-        tour_result = next(tour_result_cursor, None)
+        tour_result = next(db.tour_instances.aggregate(pipeline), None)
 
         if not tour_result:
             raise ValueError("Tour not found or invalid aggregation result.")
 
         price = tour_result.get("price")
+        capacity = tour_result.get("capacity", 13)
+        registered = tour_result.get("registered", 0)
+
         if price is None:
             raise ValueError("Price could not be determined.")
 
-        cart_item = {
-            "user_id": user_id,
-            "student_id": student_id,
-            "added_at": datetime.utcnow(),
-            "status": "pending",
-            "price": price,
-            "reservation_data": tour_result
-        }
+        available = capacity - registered
+        new_confirmed = 0
+        created_items = []
 
-        if user_id != student_id:
-            cart_item["parent_id"] = user_id
+        for i, student_id in enumerate(student_ids):
+            seat_status = "Confirmed" if i < available else "Waitlisted"
+            if seat_status == "Confirmed":
+                new_confirmed += 1
 
-        db.cart.insert_one(cart_item)
-        db.reservations.insert_one(cart_item)
+            cart_item = {
+                "user_id": user_id,
+                "student_id": student_id,
+                "tour_id": str(tour_id),
+                "added_at": datetime.utcnow(),
+                "status": "pending",  # cart status
+                "seat_status": seat_status,
+                "price": price,
+                "reservation_data": tour_result
+            }
 
-        return cart_item
+            if user_id != student_id:
+                cart_item["parent_id"] = user_id
+
+            db.cart.insert_one(cart_item)
+            db.reservations.insert_one(cart_item)
+            created_items.append(cart_item)
+
+        # Update the registered count only for confirmed students
+        if new_confirmed > 0:
+            db.tour_instances.update_one(
+                {"_id": tour_id},
+                {"$inc": {"registered": new_confirmed}}
+            )
+
+        return created_items
 
     except Exception as e:
         handle_exception(e)
@@ -248,69 +271,146 @@ def get_tour_name(tour_id):
         handle_exception(e)
         raise
 
+def get_linked_users(user_id, include_pending=False):
+    """
+    Get all linked users for the current user.
+
+    Args:
+        user_id (str): The ID of the current user (parent or student).
+        include_pending (bool): If True, include pending links too.
+
+    Returns:
+        list of dicts: List of linked users.
+    """
+    try:
+        current_role = current_user.role  # Detect role at runtime
+
+        if current_role == "parent":
+            linked_role = "student"
+            current_user_id_field = "parent_id"
+            linked_field = "student_email"
+        elif current_role == "student":
+            linked_role = "parent"
+            current_user_id_field = "student_id"
+            linked_field = "parent_email"
+        else:
+            raise ValueError("Invalid user role.")
+
+        # Build the query
+        query = {
+            current_user_id_field: str(user_id)
+        }
+        
+        if not include_pending:
+            query["status"] = "approved"
+        current_user_records = list(db.student_parent_links.find(query))
+
+        # Fetch linked user info
+        current_users = []
+        for current_user_record in current_user_records:
+            sanitize_current_user_record = sanitize_for_json(current_user_record)
+            linked_user_id = None
+            if f"{linked_role}_id" in sanitize_current_user_record:
+                linked_user_id = sanitize_current_user_record[f"{linked_role}_id"]
+
+            if linked_user_id:
+                linked_user = db.users.find_one({
+                    "_id": linked_user_id,
+                    "role": linked_role
+                })
+                print(linked_user)
+
+                if linked_user:
+                    current_users.append({
+                        f"{linked_role}_id": linked_user_id,
+                        linked_field: linked_user.get("email", "unknown"),
+                        f"{linked_role}_name": linked_user.get("name", "unknown"),
+                    })
+            else:
+                # fallback to using the email stored in the link record
+                current_users.append({
+                    linked_field: current_user_record.get(linked_field, "unknown"),
+                })
+
+        if len(current_users) > 0:
+            #return sanitize_for_json(current_user_records)
+            return current_users
+        else:
+            return []
+
+    except Exception as e:
+        handle_exception(e)
+        raise
+
+def get_selected_students(user_id, tour_id):
+    try:
+        record = db.temporary_selections.find_one({
+            "parent_id": str(user_id),
+            "tour_id": str(tour_id)
+        })
+
+        if not record:
+            return []
+
+        return record.get("student_ids", [])
+    except Exception as e:
+        handle_exception(e)
+        return []
+
 def handle_parent_checklist(user, tour_id):
     try:
         if not isinstance(user.profile, dict):
-            flash("Please fill complete your profile before reserving.", "info")
+            flash("Please complete your profile before reserving.", "info")
             return redirect(url_for("auth.profile", tour_id=tour_id))
-        
-        linked_students = get_linked_users(user.id, True) #### MAKE ACCOUNT INACTIVE UNTIL KID CLICKS LINK IN EMAIL, WHERE THEY WILL IMMEDIATELY ASK FOR A PASSWORD RESET.
-        if not linked_students:
-            flash("You must link a student to your account before proceeding.", "info") 
+
+        # ✅ Get all linked students (approved or pending)
+        linked_students = get_linked_users(user.id, include_pending=True)
+
+        if len(linked_students) < 1:
+            flash("You must link a student to your account before proceeding.", "info")
             return redirect(url_for('tours.link_email', tour_id=tour_id))
-        
-        linked_students_to_tour = get_linked_users_to_tour(user.id, True)
 
-        if not linked_students_to_tour:
+        # ✅ Get previously selected students from temp collection
+        selected_students = get_selected_students(user.id, tour_id)
+
+        print(selected_students)
+
+        if not selected_students:
+            # Redirect to select students if none are recorded
             return render_template('select_student.html', students=linked_students, tour_id=tour_id)
-        
 
-        if not has_signed_consent_form(user.id, linked_students_to_tour): #Add linked_students_to_tour to function. Make option for list or string
-            flash("You must sign a consent form for your student.", "info")
-            return redirect(url_for('tours.sign_consent', student_id=linked_students_to_tour, tour_id=tour_id))
+        # ✅ Consent Form check (parent must consent per student)
+        for sid in selected_student_ids:
+            if not has_signed_consent_form(sid, tour_id):
+                flash("You must sign a consent form for each student.", "info")
+                return redirect(url_for('tours.sign_consent', student_id=sid, tour_id=tour_id))
 
-        if not has_signed_code_of_conduct(user.id, linked_students_to_tour, within_days=60): #Add linked_students_to_tour to function. Make option for list or string
+        # ✅ Code of Conduct (parent signs annually)
+        if not has_signed_code_of_conduct(user.id, within_days=365):
             flash("You must sign the Code of Conduct.", "info")
             return redirect(url_for('tours.sign_code_of_conduct', tour_id=tour_id))
 
+        # ✅ Upload Parent Photo ID
         if not has_valid_photo_id(user.id):
             flash("You must upload a valid photo ID.", "info")
             return redirect(url_for('tours.upload_photo_id', tour_id=tour_id))
 
+        # ✅ Check background if attending
         if request.form.get('is_attending') == 'yes':
             if not has_recent_background_check(user.id, within_days=180):
                 flash("You must complete a background check to attend.", "info")
                 return redirect(url_for('tours.submit_background_check', tour_id=tour_id))
 
-        add_reservation_to_cart(user.id, linked_students_to_tour, tour_id) #Add linked_students_to_tour to function. Make option for list or string
-        flash("Reservation added to cart successfully.", "success")
+        # ✅ Reservation step with seat logic
+        reservations = add_reservation_to_cart(user.id, selected_student_ids, tour_id)
+
+        flash(f"Reservation(s) added to cart. ({len(reservations)} student(s))", "success")
         return redirect(url_for('tours.cart'))
-    except Exception as e:
-        handle_exception(e)
-        raise
-
-@tours_bp.route('/submit_background_check', methods=['GET', 'POST'])
-@login_required
-@role_required("parent")
-def submit_background_check():
-    """
-    Allow a parent to submit their background check file.
-    """
-    try:
-        if request.method == 'POST':
-            file = request.files.get('background_check_file')
-            file_status = test_file(file, "background check")
-            if file_status == False:
-                return redirect(request.url)
-            flash("Background check submitted successfully! It is now pending review by an admin.", "sucess")
-            return redirect(url_for('tours.tour_checklist'))
-
-        return render_template('submit_background_check.html')
 
     except Exception as e:
         handle_exception(e)
         raise
-    
+
 def handle_student_checklist(user, tour_id):
     try:
         if isinstance(user.profile, dict) and user.profile.get("birthdate"):
@@ -581,68 +681,6 @@ def has_valid_student_id(user_id):
         raise
 '''
 
-def get_linked_users(user_id, include_pending=False):
-    """
-    Get all linked users for the current user.
-
-    Args:
-        user_id (str): The ID of the current user (parent or student).
-        include_pending (bool): If True, include pending links too.
-
-    Returns:
-        list of dicts: List of linked users.
-    """
-    try:
-        current_role = current_user.role  # Detect role at runtime
-
-        if current_role == "parent":
-            linked_role = "student"
-            current_user_id_field = "parent_id"
-            linked_field = "student_email"
-        elif current_role == "student":
-            linked_role = "parent"
-            current_user_id_field = "student_id"
-            linked_field = "parent_email"
-        else:
-            raise ValueError("Invalid user role.")
-
-        # Build the query
-        query = {
-            current_user_id_field: str(user_id)
-        }
-
-        if not include_pending:
-            query["status"] = "approved"
-
-        current_user_records = list(db.student_parent_links.find(query))
-
-        # Fetch linked user info
-        current_users = []
-        for current_user_record in current_user_records:
-            linked_user_email = current_user_record.get(linked_field)
-            if linked_user_email:
-                linked_user = db.users.find_one({
-                    "email": linked_user_email,
-                    "role": linked_role
-                })
-                if linked_user:
-                    current_users.append({
-                        "user_id": linked_user.get("_id"),
-                        "user_name": linked_user.get("name", "Unknown"),
-                        "link_status": current_user_record.get("status", "unknown"),
-                        "linked_date": current_user_record.get("linked_date")
-                    })
-                else:
-                    current_users.append({linked_field: linked_user_email})
-
-        if len(current_users) > 0:
-            return current_users
-        else:
-            return False
-
-    except Exception as e:
-        handle_exception(e)
-        raise
 
 def safe_get_tour_id():
     return sanitize_input(request.form.get('tour_id')) or sanitize_input(request.args.get('tour_id'))
@@ -1169,13 +1207,15 @@ def parent_fill_student_profile():
 @tours_bp.route('/process_selected_students', methods=['POST'])
 @login_required
 def process_selected_students():
-    selected_student_identifiers = student_name = None
+    selected_student_identifiers = student_name = tour_id = None
     if request.form.getlist('student_identifiers') and request.form.getlist('student_identifiers') != "":
         selected_student_identifiers = sanitize_input(request.form.getlist('student_identifiers'))
     else:
         flash("There were no students selected.")
         return redirect(request.url)
-    
+
+    if request.form.get("tour_id"):
+        tour_id = sanitize_input(request.form.get("tour_id"))    
     
     if request.form.get('student_name'):
         student_name = sanitize_input(request.form.get('student_name'))
@@ -1200,9 +1240,19 @@ def process_selected_students():
                 flash("Please enter the full name for the new student.", "danger")
                 return redirect(request.url)
             check_email = db.users.find_one({"email": student_email})
+            print("check_email: {check_email}")
             if not check_email:
                 new_student = add_new_account_to_db(student_email, student_name, "student")
                 new_student_id = db.users.insert_one(new_student).inserted_id
+
+                db.temporary_selections.insert_one({
+                    "student_id": str(new_student_id),
+                    "parent_id": str(current_user.id),
+                    "date_added_to_tour": datetime.utcnow(),
+                    "tour_id": tour_id,
+                    "status": "pending"
+                })
+
                 flash("New accounts have been created.", "success")
             else:
                 flash("The account has already been created, but no profile exists.", "warning")
@@ -1228,10 +1278,11 @@ def student_fill_profile_later():
     # Optionally mark that the parent deferred profile completion
     for sid in student_ids:
         db.users.update_one(
-            {"_id": ObjectId(sid), "role": "student"},
+            {"_id": sid, "role": "student"},
             {"$set": {
                 "profile_deferred": True,
-                "profile_deferred_by": str(current_user.id),
+                "profile_deferred_by": str
+                (current_user.id),
                 "profile_complete": False
             }}
         )
@@ -1345,6 +1396,28 @@ def sign_consent(student_id, tour_id):
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))
+
+@tours_bp.route('/submit_background_check', methods=['GET', 'POST'])
+@login_required
+@role_required("parent")
+def submit_background_check():
+    """
+    Allow a parent to submit their background check file.
+    """
+    try:
+        if request.method == 'POST':
+            file = request.files.get('background_check_file')
+            file_status = test_file(file, "background check")
+            if file_status == False:
+                return redirect(request.url)
+            flash("Background check submitted successfully! It is now pending review by an admin.", "sucess")
+            return redirect(url_for('tours.tour_checklist'))
+
+        return render_template('submit_background_check.html')
+
+    except Exception as e:
+        handle_exception(e)
+        raise
 
 @tours_bp.route("/tour/<tour_id>")
 def tour_details(tour_id):

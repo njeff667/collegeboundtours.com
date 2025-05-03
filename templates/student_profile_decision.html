@@ -13,7 +13,9 @@
 
     <div class="d-grid gap-3 mt-4">
         <form method="POST" action="{{ url_for('tours.parent_fill_student_profile') }}">
-            <input type="hidden" name="student_id" value="{{ student_id }}">
+            {% for sid in newly_created_student_ids %}
+            <input type="hidden" name="student_id" value="{{ sid }}">
+            {% endfor %}
             <button type="submit" class="btn btn-primary btn-lg">I (Parent) will complete it now</button>
         </form>
 
