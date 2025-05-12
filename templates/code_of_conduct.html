@@ -21,6 +21,8 @@
 
     <form method="POST" action="{{ url_for('tours.sign_code_of_conduct') }}">
         <div class="form-check mb-3">
+            <input type="hidden" name="tour_id" value="{{ tour_id }}">
+            <input type="hidden" name="name_on_file" value="{{ parent_name }}">
             <input class="form-check-input" type="checkbox" id="agree" name="agree" required>
             <label class="form-check-label" for="agree">
                 I have read and agree to the terms of the Code of Conduct.

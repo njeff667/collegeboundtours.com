@@ -9,11 +9,12 @@
         Please select all students you are registering for this tour.<br>
     </p>
 
-    <form method="POST" action="{{ url_for('tours.process_selected_students') }}" id="student-selection-form">
+    <form method="POST" action="{{ url_for('tours.process_selected_students') }}?tour_id={{ tour_id }}">
+        {% for student in students %}
         <div class="mb-3">
-            {% for student in students %}
+           
                 <div class="form-check">
-                    <input type="hidden" name="tour_id" value="{{tour_id}}">
+                    <input type="hidden" name="tour_id" value="{{ tour_id }}">
                     <input class="form-check-input" type="checkbox" name="student_identifiers" id="student_{{ loop.index }}" value="{{ student.student_id }}:{{ student.student_email }}" onchange="checkStudentAccount(this)">
                     <label class="form-check-label" for="student_{{ loop.index }}">
                         {% if student.student_id %}
@@ -22,15 +23,15 @@
                             {{ student.student_email }} (Pending Account)
                         {% endif %}
                     </label>
-                </div>
-            {% endfor %}            
+                </div>         
         </div>
 
         <!-- Section for New Student Name (if needed) -->
         <div id="new-student-name-section" class="mb-3" style="display:none;">
-            <label for="student_name" class="form-label">Enter Full Name for New Student</label>
-            <input type="text" name="student_name" id="student_name" class="form-control" placeholder="Full Name">
+            <label for="student_name[{{ loop.index}}]" class="form-label">Enter Full Name for New Student</label>
+            <input type="text" name="student_name[{{ loop.index}}]" id="student_name[{{ loop.index}}]" class="form-control" placeholder="Full Name" value="{{ student.student_name }}">
         </div>
+        {% endfor %}
 
         <button type="submit" class="btn btn-primary mt-4">Continue with Selected Student(s)</button>
     </form>

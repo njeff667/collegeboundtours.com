@@ -8,7 +8,7 @@ from flask import current_app, request, redirect, url_for, flash
 from flask_login import current_user
 from google.cloud import storage
 from dotenv import load_dotenv
-import cloudmersive_virus_api_client, os, random, string, time, traceback
+import cloudmersive_virus_api_client, os, random, re, string, time, traceback
 
 
 # Load environment variables
@@ -72,22 +72,35 @@ def save_error_to_db(error_info):
     """
     db.error_logs.insert_one(error_info)
 
-def sanitize_input(value):
+def sanitize_input(value, exception: str = ""):
+    """
+    Sanitize a string or list by removing unsafe characters.
+    If `exception` is provided, those characters will be preserved.
+    """
     try:
         if not value:
             return "" if not isinstance(value, list) else []
 
-        if isinstance(value, list):
-            # Sanitize each item in the list recursively
-            return [str(item).strip() for item in value if item is not None]
+        # Define default pattern of allowed characters
+        allowed = r"\w\s@.\-"
+        if exception:
+            # Escape each character in the exception string
+            allowed += re.escape(exception)
 
-        # Handle single values
-        return str(value).strip()
+        pattern = rf"[^{allowed}]"
+
+        def clean(val):
+            val = str(val).strip()
+            return re.sub(pattern, "", val)
+
+        if isinstance(value, list):
+            return [clean(v) for v in value if v is not None]
+
+        return clean(value)
 
     except Exception as e:
         handle_exception(e)
         return "" if not isinstance(value, list) else []
-
 
 def role_required(required_role):
     try:
@@ -135,6 +148,26 @@ def upload_to_gcs(file, filename, bucket_name="your-gcs-bucket-name"):
     except Exception as e:
         handle_exception(e)
         return redirect(url_for('home'))
+    
+def safe_get_parameter_list(parameter_name, exception=None):
+    values = request.form.getlist(parameter_name) or request.args.getlist(parameter_name)
+
+    if values and isinstance(values, list):
+        return [sanitize_input(v, exception) for v in values if v]
+    else:
+        single_value = request.form.get(parameter_name) or request.args.get(parameter_name)
+        return sanitize_input(single_value, exception)
+    
+def safe_get_parameter(parameter, exception=None):
+    form_value = sanitize_input(request.form.get(parameter), exception)
+    if form_value and form_value != "":
+        return form_value
+    
+    args_value = sanitize_input(request.args.get(parameter), exception)
+    if args_value and args_value != "":
+        return args_value
+
+    return None
     
 def scan_file_for_viruses(filepath):
     """

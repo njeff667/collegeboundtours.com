@@ -183,7 +183,7 @@ def signup():
                 return redirect(url_for("auth.signup"))
 
             new_user = add_new_account_to_db(email, name, role, password)
-            print(new_user)
+            #print(new_user)
 
             db.users.insert_one(new_user)
             flash("Account created. Please log in.", "success")
@@ -216,18 +216,23 @@ def profile():
         if request.method == "GET":
             if current_user.role == "parent":
                 if tour_id:
-                    return redirect(url_for("parent.parent_profile", tour_id=tour_id, parent=current_user))
+                    return redirect(url_for("parent.parent_profile", tour_id=tour_id))
                 else:
-                    return redirect(url_for("parent.parent_profile", parent=current_user))            
+                    return redirect(url_for("parent.parent_profile"))            
             elif current_user.role == "student":
                 if tour_id:
-                    return redirect(url_for("student.student_profile", tour_id=tour_id, student=current_user))
+                    return redirect(url_for("student.student_profile", tour_id=tour_id))
                 else:
-                    return redirect(url_for("student.student_profile", student=current_user))
+                    return redirect(url_for("student.student_profile"))
+            elif current_user.role == "driver":
+                if tour_id:
+                    return redirect(url_for("driver.driver_profile", tour_id=tour_id))
+                else:
+                    return redirect(url_for("driver.driver_profile"))
             elif current_user.role == "admin":
-                return redirect(url_for("admin.admin_profile", admin=current_user))
+                return redirect(url_for("admin.admin_profile"))
             elif current_user.role == "operations":
-                return redirect(url_for("operations.operations_profile", operation=current_user))
+                return redirect(url_for("operations.operations_profile"))
             else:
                 flash("There was an error redirecting to your profile. Please try again", "danger")
                 return redirect(url_for("tours.tour_schedule"))

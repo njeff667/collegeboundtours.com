@@ -73,17 +73,17 @@ def confirm_parent(token):
 @login_required
 @role_required("parent")
 def parent_profile():
-    tour_id = None
-    if request.args.get("tour_id"):
-        tour_id = sanitize_input(request.args.get("tour_id"))
-        print(f"tour_id: {tour_id}")
+    tour_id = sanitize_input(request.args.get("tour_id")) or sanitize_input(request.form.get("tour_id"))
+
     if request.method == "POST":
-        profile_data = {
+        required_data = {
             "user_id": current_user.id,
             "name": sanitize_input(request.form.get("name")),
-            "email": sanitize_input(request.form.get("email")),
             "cell_phone": sanitize_input(request.form.get("cell_phone")),
             "text_opt_in": sanitize_input(request.form.get("text_opt_in")),
+        }
+        profile_data = {
+            
             "maddress": sanitize_input(request.form.get("m_address")),
             "baddress": sanitize_input(request.form.get("b_address")),
             "emergency_contact": sanitize_input(request.form.get("emergency_contact")),
@@ -98,17 +98,12 @@ def parent_profile():
         
         updated_profile = db.users.update_one(
             {"_id": ObjectId(current_user.id)},
-            {"$set": {"name": profile_data["name"], "email": profile_data["email"],"profile": {"cell_phone": profile_data["cell_phone"], "text_opt_in": profile_data["text_opt_in"], "updated_at": profile_data["updated_at"]}}},
+            {"$set": {"name": required_data["name"], "cell_phone": required_data["cell_phone"], "text_opt_in": required_data["text_opt_in"], "profile": profile_data}},
             upsert=True
         )
         print(updated_profile)
 
         flash("Profile updated successfully.", "success")
         if tour_id:
-            return redirect(url_for("tours.tour_schedule", tour_id=tour_id))
-    if current_user.profile:
-        #user = db.users.find_one({"_id": current_user.id, "profile": {"$exists": True}}) or {}
-        profile=current_user.profile
-    else:
-        profile = ""
-    return render_template("parent_profile.html", parent=profile, is_editable=False if profile else True)
+            return redirect(url_for("tours.tour_checklist", tour_id=tour_id))
+    return render_template("parent_profile.html", tour_id=tour_id)

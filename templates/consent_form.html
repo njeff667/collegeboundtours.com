@@ -1,32 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Sign Consent Form{% endblock %}
+{% block title %}Parental Consent Authorization{% endblock %}
 
 {% block content %}
 <div class="container mt-5" style="max-width: 700px;">
-    <h2 class="mb-4">Sign Consent for Student(s)</h2>
+    <h2 class="mb-4">Parental Consent for {{ student_name }}</h2>
 
-    <form method="POST">
+    <form method="POST" action="{{ url_for('tours.sign_consent', student_id=student_id, tour_id=tour_id) }}">
         <input type="hidden" name="tour_id" value="{{ tour_id }}">
+        <input type="hidden" name="name_on_file" value="{{ student_name }}">
+        <input type="hidden" name="student_id" value="{{ student_id }}">
 
-        {% for student in students %}
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="student_id" id="student_{{ loop.index }}" value="{{ student._id }}" checked required>
-                <label class="form-check-label" for="student_{{ loop.index }}">
-                    {{ student.name }}
-                </label>
-            </div>
-        {% endfor %}
-
-        <div class="mb-3 mt-4">
-            <label for="signature" class="form-label">Type your full name as electronic signature:</label>
-            <input type="text" name="signature" id="signature" class="form-control" required>
+        <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" id="consent_checkbox" name="consent_checkbox" value="agreed" required>
+            <label class="form-check-label" for="consent_checkbox">
+                I, the undersigned parent or legal guardian of <strong>{{ student_name }}</strong>, hereby grant permission for my child to participate in the scheduled college tour organized by College Bound Tours, which includes travel to the following {% if tour_universities|length > 1 %}universities{% else %}university{% endif %}, <strong>{{ tour_universities }}</strong>, on <strong>{{ tour_date }}</strong>. I acknowledge that I have reviewed the tour details and agree to hold harmless College Bound Tours, its staff, contractors, and partners from any liability, claims, or demands for personal injury, illness, or property damage incurred during participation in this tour, to the fullest extent permitted by law.
+            </label>
         </div>
 
-        <button type="submit" class="btn btn-primary mt-3">Sign Consent Form(s)</button>
-    </form>
+        <div class="mb-3">
+            <label for="signature" class="form-label">
+                <strong>Electronic Signature:</strong> To authorize this consent, please type your full name exactly as it appears in your account (<strong>{{ parent_name }}</strong>).
+            </label>
+            <input type="text" name="signature" id="signature" class="form-control" required placeholder="Enter your full legal name">
+        </div>
 
-    <div class="mt-4">
-        <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
-    </div>
+        <button type="submit" class="btn btn-primary mt-3">Submit Consent</button>
+        <a href="{{ url_for('home') }}" class="btn btn-secondary mt-3 ms-2">Cancel</a>
+    </form>
 </div>
 {% endblock %}

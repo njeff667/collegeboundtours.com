@@ -11,19 +11,19 @@
         <strong>Who should complete the student profile?</strong>
     </div>
 
+    {% for sid in student_ids%}
     <div class="d-grid gap-3 mt-4">
         <form method="POST" action="{{ url_for('tours.parent_fill_student_profile') }}">
-            {% for sid in newly_created_student_ids %}
             <input type="hidden" name="student_id" value="{{ sid }}">
-            {% endfor %}
             <button type="submit" class="btn btn-primary btn-lg">I (Parent) will complete it now</button>
         </form>
 
         <form method="POST" action="{{ url_for('tours.student_fill_profile_later') }}">
-            <input type="hidden" name="student_id" value="{{ student_id }}">
+            <input type="hidden" name="student_id" value="{{ sid }}">
             <button type="submit" class="btn btn-secondary btn-lg">Let the Student complete it later</button>
         </form>
     </div>
+    {% endfor %}
 
     <div class="mt-4">
         <a href="{{ url_for('home') }}" class="btn btn-link">Return Home</a>

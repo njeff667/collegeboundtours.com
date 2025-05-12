@@ -7,11 +7,11 @@
   <form method="POST" action="{{ url_for('auth.login') }}">
     <div class="mb-3">
       <label>Email:</label>
-      <input type="email" name="email" class="form-control" required>
+      <input type="email" name="email" class="form-control" autocomplete="email" required>
     </div>    
     <div class="mb-3">
       <label>Password:</label>
-      <input type="password" name="password" class="form-control" autocompleted="on" required>
+      <input type="password" name="password" class="form-control" autocomplete="password" required>
     </div>
     <button class="btn btn-primary w-100">Login</button>
   </form>

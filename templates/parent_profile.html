@@ -18,9 +18,6 @@
           <dt class="col-sm-4">Full Name</dt>
           <dd class="col-sm-8">{{ current_user.name }}</dd>
     
-          <dt class="col-sm-4">Email Address</dt>
-          <dd class="col-sm-8">{{ current_user.email }}</dd>
-    
           <dt class="col-sm-4">Cell Phone</dt>
           <dd class="col-sm-8">{{ current_user.cell_phone }}</dd>
     
@@ -33,10 +30,10 @@
     <div id="edit-profile-form" {% if parent %}style="display: none;"{% endif %}>
       <form method="POST" action="{{ url_for('parent.parent_profile') }}">
         {% include 'parent_profile_form.html' %}
-        <input type="hidden" name="tour_id">
+        <input type="hidden" name="tour_id" value="{{ tour_id }}">
         <button type="submit" class="btn btn-primary">Save Profile</button>
-        <button type="button" class="btn btn-secondary">Change Email</button>
-        <button type="button" class="btn btn-secondary">Change Password</button>
+        <button type="button" class="btn btn-info">Change Email</button>
+        <button type="button" class="btn btn-info">Change Password</button>
         <button type="button" class="btn btn-secondary" onclick="toggleEdit(false)">Cancel</button>
       </form>
     </div>
