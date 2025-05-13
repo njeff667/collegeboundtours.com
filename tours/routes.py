@@ -388,10 +388,13 @@ def handle_parent_checklist(tour_id, slots_available):
         if not parent_attendance_status:
             flash("You must inform if you plan on attending. Note that if you do attend, we will conduct a criminal background check on all adults traveling on the trip with high school students.", "info")
             return redirect(url_for("tours.parent_attendance", tour_id=tour_id))
-        
-        if num_of_selected_students-slots_available < 1 and parent_attendance_status:
+        elif str(parent_attendance_status).lower() == "yes":
+            flash("We have recorded that you will be attending. We will need to conduct a criminal background check on all adults traveling on the trip with high school students.", "info")
+
+
+        if num_of_selected_students-slots_available < 1 and str(parent_attendance_status).lower() == "yes":
             flash("There are no more avaialbe slots for a parent or guardian. You will not be placed on the waitlist.", "warning")
-            waitlist_parent()
+            waitlist_parent(user_id, "parent")
 
         # ✅ Consent Form check (parent must consent per student)
         for student_id in selected_students:
@@ -675,6 +678,20 @@ def has_valid_student_id(user_id):
         handle_exception(e)
         raise
 
+def insert_ts_record(students_ids, user_id, tour_id):
+    try:
+        inserted_ts_record = db.temporary_selections.insert_one({
+            "student_ids": students_ids,
+            "parent_id": str(user_id),
+            "date_added_to_tour": datetime.utcnow(),
+            "tour_id": tour_id,
+            "status": "pending"
+        })
+        return inserted_ts_record
+    except Exception as e:
+        handle_exception(e)
+        raise
+
 def save_consent_form(data):
     """
     Save consent form data to database.
@@ -747,7 +764,13 @@ def test_file(file, file_title):
         handle_exception(e)
         raise
 
-
+def waitlist_parent(wait_list_id, wait_list_role):
+    try:
+        status = db.temporary_selection.update_one({f"{wait_list_role}_id":wait_list_id}, {$set: {"status": "waitlist"}})
+        return status
+    except Exception as e:
+        handle_exception(e)
+        raise
 @tours_bp.route('/approve_parent_link/<token>')
 def approve_parent_link(token):
     try:
@@ -942,6 +965,28 @@ def link_email():
         handle_exception(e)
         return redirect(url_for('home'))
 
+@tours_bp.route('parent_attendance', methods=['GET', 'POST'])
+@login_required
+@role_required('parent')
+def parent_attendance():
+    try:
+        tour_id = safe_get_parameter("tour_id")
+        if request.method == "GET":            
+            return render_template("parent_attendance.html", tour_id=tour_id)
+        elif request.method == "POST":
+            parent_attendance_decison = safe_get_parameter("parent_attendance_decison")
+            if not parent_attendance_decison:
+                redirect(request.url)
+            if str(parent_attendance_decison).lower() == "yes":
+                insert_ts_record(None, current_user.id, tour_id)
+            return redirect(url_for("tours.tour_checklist", tour_id=tour_id))
+
+
+
+    except Exception as e:
+        handle_exception(e)
+        return redirect(url_for('home'))
+
 @tours_bp.route('/parent_fill_student_profile', methods=['GET', 'POST'])
 @login_required
 @role_required("parent")
@@ -1042,13 +1087,8 @@ def process_selected_students():
         student_index += 1    
 
     if add_to_temporary_selections:
-        db.temporary_selections.insert_one({
-            "student_ids": add_to_temporary_selections,
-            "parent_id": str(current_user.id),
-            "date_added_to_tour": datetime.utcnow(),
-            "tour_id": tour_id,
-            "status": "pending"
-        })
+        insert_ts_record(add_to_temporary_selections, current_user.id, tour_id)
+    
     if newly_created_student_ids:
         return render_template('student_profile_decision.html', student_ids=newly_created_student_ids)
     else:
